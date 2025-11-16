@@ -61,23 +61,36 @@ class ClientController {
     }
 
     // Traite la connexion (POST)
-    public function handleLogin() {
+   public function handleLogin() {
         $client = new Client($this->db);
 
         $client->email = $_POST['email'];
         $client->mot_de_passe = $_POST['mot_de_passe'];
 
         if ($client->login()) {
+            // SUCCÈS !
             $_SESSION['client_id'] = $client->id_client;
             $_SESSION['client_nom'] = $client->nom . ' ' . $client->prenom;
-            header("Location: /dashboard");
+            
+            // --- NOUVELLE LOGIQUE DE REDIRECTION ---
+            // On vérifie s'il y a une redirection en attente
+            if (isset($_SESSION['redirect_to'])) {
+                $redirectUrl = $_SESSION['redirect_to'];
+                unset($_SESSION['redirect_to']); // On nettoie la session
+                header("Location: " . $redirectUrl);
+            } else {
+                // Sinon (connexion normale), on va au tableau de bord
+                header("Location: /dashboard");
+            }
             exit();
+            // --- FIN DE LA NOUVELLE LOGIQUE ---
+
         } else {
+            // Échec
             header("Location: /login?error=Email ou mot de passe incorrect.");
             exit();
         }
     }
-
     // Affiche le tableau de bord (protégé)
     public function showDashboard() {
         if (!isset($_SESSION['client_id'])) {

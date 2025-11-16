@@ -189,6 +189,30 @@ public function getTicketDetails($id_client, $id_reservation) {
      * Crée une nouvelle réservation dans la BDD.
      * Le statut par défaut est 'EN_ATTENTE' (défini dans votre SQL).
      */
-   
+   public function getManifestByVoyageId($id_voyage) {
+        $query = "SELECT
+                    r.numero_siege,
+                    cm.statut AS statut_commande,
+                    cm.montant_total AS montant_paye, -- <-- CORRECTION: Ajout de l'alias 'montant_paye'
+                    cl.nom AS client_nom,
+                    cl.prenom AS client_prenom,
+                    cl.telephone AS client_telephone
+                FROM
+                    " . $this->table_name . " r
+                JOIN
+                    commandes cm ON r.id_commande = cm.id_commande
+                JOIN
+                    clients cl ON r.id_client = cl.id_client
+                WHERE
+                    r.id_voyage = :id_voyage
+                ORDER BY
+                    r.numero_siege ASC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id_voyage', $id_voyage);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     // (Nous ajouterons les méthodes create() et getReservedSeats() plus tard)
 }

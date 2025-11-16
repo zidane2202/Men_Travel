@@ -37,27 +37,31 @@ class Commande {
     /**
      * AJOUT 1: Trouve une commande par son ID et vérifie le client
      */
-    public function findByIdAndClient($id_commande, $id_client) {
+    public function findByIdAndClient($id_ref, $id_user, $forAdmin = false) {
+        $field = $forAdmin ? 'v.id_voyage' : 'c.id_commande';
+        $userCheck = $forAdmin ? '' : 'AND c.id_client = :id_client'; // Admin n'a pas besoin de vérifier le client
+
         $query = "SELECT
                     c.id_commande, c.montant_total, c.statut,
-                    v.ville_depart, v.ville_arrivee
+                    v.ville_depart, v.ville_arrivee, v.date_depart, v.prix
                 FROM
-                    " . $this->table_name . " c
+                    commandes c
                 JOIN
                     voyages v ON c.id_voyage = v.id_voyage
                 WHERE
-                    c.id_commande = :id_commande
-                    AND c.id_client = :id_client
+                    {$field} = :id_ref
+                    {$userCheck}
                 LIMIT 0,1";
         
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id_commande', $id_commande);
-        $stmt->bindParam(':id_client', $id_client);
+        $stmt->bindParam(':id_ref', $id_ref);
+        if (!$forAdmin) {
+            $stmt->bindParam(':id_client', $id_user);
+        }
         $stmt->execute();
         
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
-
     /**
      * AJOUT 2: Met à jour le statut d'une commande
      */

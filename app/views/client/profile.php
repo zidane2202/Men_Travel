@@ -25,7 +25,7 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
         .sidebar-footer { padding: 1.5rem; border-top: 1px solid #004a99; }
         .logout-link { display: block; background-color: #d9534f; color: #fff; text-align: center; padding: 0.75rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background-color 0.3s; }
         .logout-link:hover { background-color: #c9302c; }
-        .main-content { flex-grow: 1; margin-left: 260px; padding: 2.5rem; animation: fadeIn 0.5s ease-out; }
+        .main-content { flex-grow: 1; margin-left: 560px; padding: 2.5rem; animation: fadeIn 0.5s ease-out; }
         .main-header { margin-bottom: 2rem; }
         .main-header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; }
         

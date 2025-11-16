@@ -53,7 +53,7 @@ $pageTitle = 'Choisir vos sièges';
             <div class="seat-map align-center ">
                 <?php 
                 $nombreSieges = $voyage['nombre_places'];
-                for ($i = 1; $i < $nombreSieges; $i++) {
+                for ($i = 1; $i <= $nombreSieges; $i++) {
                     $isOccupied = in_array($i, $siegesReserves);
                     $class = $isOccupied ? 'occupied' : '';
                     echo "<div class='seat $class' data-seat-number='$i'>$i</div>";
