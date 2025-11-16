@@ -17,17 +17,17 @@ class Mailer {
         $this->mail = new PHPMailer(true);
 
         // --- VOTRE CONFIGURATION SMTP GMAIL ---
-        // $this->mail->SMTPDebug = SMTP::DEBUG_SERVER;  // Décommentez pour un debug détaillé
+       // $this->mail->SMTPDebug = SMTP::DEBUG_SERVER;  // Décommentez pour un debug détaillé
         $this->mail->isSMTP();
         $this->mail->Host       = 'smtp.gmail.com';
         $this->mail->SMTPAuth   = true;
-        $this->mail->Username   = 'votre.email@gmail.com'; // VOTRE ADRESSE GMAIL
-        $this->mail->Password   = 'abcd efgh ijkl mnop';   // VOTRE MOT DE PASSE D'APPLICATION (16 chiffres)
+        $this->mail->Username   = 'pythiemorne22@gmail.com'; // VOTRE ADRESSE GMAIL
+        $this->mail->Password   = 'vlef jdtz vhlb njby';   // VOTRE MOT DE PASSE D'APPLICATION (16 chiffres)
         $this->mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $this->mail->Port       = 587; // Port pour TLS
         
         // Qui envoie l'email ?
-        $this->mail->setFrom('votre.email@gmail.com', 'Men Travel (Service de Réservation)');
+        $this->mail->setFrom('pythiemorne22@gmail.com', 'Men Travel (Service de Réservation)');
         
         // S'assurer qu'on utilise l'UTF-8
         $this->mail->CharSet = 'UTF-8';
