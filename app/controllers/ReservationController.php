@@ -54,41 +54,73 @@ class ReservationController {
      * (Appelée par POST /reservation/create)
      */
     public function create() {
-        // Sécurité : vérifier si le client est connecté
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login");
             exit();
         }
 
-        // Récupérer les données du formulaire
+        // 1. Récupérer les données (un tableau de sièges)
         $id_voyage = $_POST['id_voyage'] ?? null;
-        $numero_siege = $_POST['numero_siege'] ?? null;
         $id_client = $_SESSION['client_id'];
+        
+        // 'numero_siege' EST UN TABLEAU (ou vide si rien n'est sélectionné)
+        $sieges_selectionnes = $_POST['numero_siege'] ?? []; 
 
-        if (!$id_voyage || !$numero_siege) {
-            header("Location: /search?error=Données de réservation manquantes.");
+        if (!$id_voyage || empty($sieges_selectionnes)) {
+            header("Location: /search?error=Aucun siège sélectionné.");
             exit();
         }
 
-        $reservationModel = new Reservation($this->db);
-        
-        // Sécurité : Vérifier si le siège n'est pas déjà pris
-        $siegesReserves = $reservationModel->getReservedSeats($id_voyage);
-        if (in_array($numero_siege, $siegesReserves)) {
-             header("Location: /reservation/select-seat/$id_voyage?error=Désolé, ce siège vient d'être pris !");
-             exit();
+        // 2. Initialiser les modèles
+        $voyageModel = new \App\Models\Voyage($this->db);
+        $reservationModel = new \App\Models\Reservation($this->db);
+        $commandeModel = new \App\Models\Commande($this->db); 
+
+        // 3. Récupérer le prix du voyage
+        $voyage = $voyageModel->findById($id_voyage);
+        if (!$voyage) {
+            header("Location: /search?error=Voyage introuvable.");
+            exit();
         }
+        
+        // 4. Calculer le total
+        $prix_unitaire = (float)$voyage['prix'];
+        $nombre_sieges = count($sieges_selectionnes);
+        $montant_total = $prix_unitaire * $nombre_sieges;
 
-        // Créer la réservation
-        $id_reservation = $reservationModel->create($id_client, $id_voyage, $numero_siege);
+        // 5. Démarrer une transaction (TRÈS IMPORTANT)
+        try {
+            $this->db->beginTransaction();
 
-       if ($id_reservation) {
-    // SUCCÈS ! Rediriger vers la nouvelle page de paiement
-    header("Location: /payment/show/" . $id_reservation);
-    exit();
-}else {
-            // Échec
-            header("Location: /reservation/select-seat/$id_voyage?error=Une erreur est survenue lors de la création.");
+            // 6. Vérifier si les sièges sont toujours libres (Sécurité contre le "race condition")
+            $siegesReserves = $reservationModel->getReservedSeats($id_voyage);
+            foreach ($sieges_selectionnes as $siege) {
+                if (in_array((int)$siege, $siegesReserves)) {
+                    throw new \Exception("Le siège N°$siege vient d'être réservé par quelqu'un d'autre.");
+                }
+            }
+
+            // 7. Créer UNE (1) Commande
+            $id_commande = $commandeModel->create($id_client, $id_voyage, $montant_total);
+
+            // 8. Créer PLUSIEURS (N) Réservations (avec les 4 arguments)
+            foreach ($sieges_selectionnes as $siege) {
+                // Cette ligne est le point de l'erreur 
+                $reservationModel->create($id_client, $id_voyage, $id_commande, (int)$siege);
+            }
+
+            // 9. Valider la transaction
+            $this->db->commit();
+
+            // 10. Rediriger vers le paiement AVEC L'ID DE LA COMMANDE
+            header("Location: /payment/show/" . $id_commande);
+            exit();
+
+        } catch (\Exception $e) {
+            // Une erreur est survenue, tout annuler
+            $this->db->rollBack();
+            // L'erreur sera affichée sur la page de sélection des sièges
+            header("Location: /reservation/select-seat/$id_voyage?error=" . urlencode($e->getMessage()));
             exit();
         }
     }
