@@ -3,90 +3,117 @@
 
 namespace App\Controllers;
 
-// Importez tous les modèles dont nous aurons besoin
 use App\Core\Database;
 use App\Models\Voyage;
 use App\Models\Reservation;
+use App\Models\Commande; // <-- IMPORTER LE NOUVEAU MODÈLE
 
 class ReservationController {
 
     private $db;
 
     public function __construct() {
-        // Initialiser la connexion BDD pour toutes les méthodes
         $database = new Database();
         $this->db = $database->getConnection();
     }
 
     /**
      * Affiche la page de sélection des sièges.
-     * (Appelée par GET /reservation/select-seat/{id})
      */
     public function showSeatSelection($id_voyage) {
-        // Sécurité : vérifier si le client est connecté
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login?error=Veuillez vous connecter pour réserver.");
             exit();
         }
 
-        // 1. Récupérer les détails du voyage
         $voyageModel = new Voyage($this->db);
         $voyage = $voyageModel->findById($id_voyage);
 
         if (!$voyage) {
-            echo "Erreur : Voyage non trouvé ou n'est plus programmé.";
+            echo "Erreur : Voyage non trouvé.";
             exit();
         }
 
-        // 2. Récupérer les sièges déjà réservés
         $reservationModel = new Reservation($this->db);
         $siegesReserves = $reservationModel->getReservedSeats($id_voyage);
 
-        // 3. Afficher la vue en lui passant les données
-        $pageTitle = "Choisir un siège";
+        $pageTitle = "Choisir vos sièges";
         require __DIR__ . '/../views/reservation/select_seat.php';
     }
 
     /**
-     * Traite la création de la réservation.
-     * (Appelée par POST /reservation/create)
+     * ======================================
+     * NOUVELLE LOGIQUE DE CRÉATION
+     * ======================================
      */
     public function create() {
-        // Sécurité : vérifier si le client est connecté
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login");
             exit();
         }
 
-        // Récupérer les données du formulaire
+        // 1. Récupérer les données (un tableau de sièges)
         $id_voyage = $_POST['id_voyage'] ?? null;
-        $numero_siege = $_POST['numero_siege'] ?? null;
         $id_client = $_SESSION['client_id'];
+        
+        // 'numero_siege' EST MAINTENANT UN TABLEAU
+        $sieges_selectionnes = $_POST['numero_siege'] ?? []; 
 
-        if (!$id_voyage || !$numero_siege) {
-            header("Location: /search?error=Données de réservation manquantes.");
+        if (!$id_voyage || empty($sieges_selectionnes)) {
+            header("Location: /search?error=Aucun siège sélectionné.");
             exit();
         }
 
+        // 2. Initialiser les modèles
+        $voyageModel = new Voyage($this->db);
         $reservationModel = new Reservation($this->db);
-        
-        // Sécurité : Vérifier si le siège n'est pas déjà pris
-        $siegesReserves = $reservationModel->getReservedSeats($id_voyage);
-        if (in_array($numero_siege, $siegesReserves)) {
-             header("Location: /reservation/select-seat/$id_voyage?error=Désolé, ce siège vient d'être pris !");
-             exit();
+        $commandeModel = new Commande($this->db); // <-- NOUVEAU
+
+        // 3. Récupérer le prix du voyage
+        $voyage = $voyageModel->findById($id_voyage);
+        if (!$voyage) {
+            header("Location: /search?error=Voyage introuvable.");
+            exit();
         }
+        
+        // 4. Calculer le total
+        $prix_unitaire = (float)$voyage['prix'];
+        $nombre_sieges = count($sieges_selectionnes);
+        $montant_total = $prix_unitaire * $nombre_sieges;
 
-        // Créer la réservation
-        $id_reservation = $reservationModel->create($id_client, $id_voyage, $numero_siege);
+        // 5. Démarrer une transaction (TRÈS IMPORTANT)
+        try {
+            $this->db->beginTransaction();
 
-       if ($id_reservation) {
-    // SUCCÈS ! Rediriger vers la nouvelle page de paiement
-    header("Location: /payment/show/" . $id_reservation);
-    exit();
-}else {
-            // Échec
-            header("Location: /reservation/select-seat/$id_voyage?error=Une erreur est survenue lors de la création.");
+            // 6. Vérifier si les sièges sont toujours libres
+            $siegesReserves = $reservationModel->getReservedSeats($id_voyage);
+            foreach ($sieges_selectionnes as $siege) {
+                if (in_array($siege, $siegesReserves)) {
+                    // Un des sièges a été pris ! Annuler.
+                    throw new \Exception("Le siège N°$siege vient d'être réservé par quelqu'un d'autre.");
+                }
+            }
+
+            // 7. Créer UNE (1) Commande
+            $id_commande = $commandeModel->create($id_client, $id_voyage, $montant_total);
+
+            // 8. Créer PLUSIEURS (N) Réservations
+            foreach ($sieges_selectionnes as $siege) {
+                $reservationModel->create($id_client, $id_voyage, $id_commande, $siege);
+            }
+
+            // 9. Valider la transaction
+            $this->db->commit();
+
+            // 10. Rediriger vers le paiement AVEC L'ID DE LA COMMANDE
+            header("Location: /payment/show/" . $id_commande);
+            exit();
+
+        } catch (\Exception $e) {
+            // Une erreur est survenue, tout annuler
+            $this->db->rollBack();
+            // Renvoyer l'utilisateur à la page de sélection avec le message d'erreur
+            header("Location: /reservation/select-seat/$id_voyage?error=" . urlencode($e->getMessage()));
             exit();
         }
     }

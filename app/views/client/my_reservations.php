@@ -2,7 +2,7 @@
 $pageTitle = 'Mes réservations';
 $client_nom = $_SESSION['client_nom'] ?? 'Client';
 
-// $reservations est passé par le contrôleur
+// La variable est maintenant $commandes (un tableau de commandes)
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -90,7 +90,7 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
             color: #003366;
         }
 
-        /* --- NOUVEAU STYLE "TICKET" --- */
+        /* --- Style "TICKET" --- */
         .reservation-list { 
             list-style: none; 
             padding: 0; 
@@ -232,38 +232,38 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
             transform: translateY(-2px);
             box-shadow: 0 5px 10px rgba(0,123,255,0.2);
         }
-        /* ... à la fin de la balise <style> ... */
 
-.ticket-actions {
-    margin-top: 1rem;
-}
-.btn-action {
-    display: block;
-    width: 100%;
-    padding: 0.6rem 0.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    text-align: center;
-    text-decoration: none;
-    box-sizing: border-box; /* Important pour le padding */
-    transition: all 0.3s ease;
-}
-.btn-pay {
-    background-color: #ffc107; /* Jaune "payer" */
-    color: #333;
-}
-.btn-pay:hover {
-    background-color: #e0a800;
-}
-.btn-view {
-    background-color: #28a745; /* Vert "succès" */
-    color: #fff;
-}
-.btn-view:hover {
-    background-color: #218838;
-}
+        /* Styles pour les boutons d'action */
+        .ticket-actions {
+            margin-top: 1rem;
+        }
+        .btn-action {
+            display: block;
+            width: 100%;
+            padding: 0.6rem 0.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            box-sizing: border-box; 
+            transition: all 0.3s ease;
+        }
+        .btn-pay {
+            background-color: #ffc107; /* Jaune "payer" */
+            color: #333;
+        }
+        .btn-pay:hover {
+            background-color: #e0a800;
+        }
+        .btn-view {
+            background-color: #28a745; /* Vert "succès" */
+            color: #fff;
+        }
+        .btn-view:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -292,21 +292,21 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
             
             <ul class="reservation-list">
                 
-                <?php if (empty($reservations)): ?>
+                <?php if (empty($commandes)): // <-- MODIFIÉ ?>
                     <li class="no-results">
                         <p>Vous n'avez aucune réservation pour le moment.</p>
                         <a href="/search" class="btn-primary">Faire une réservation</a>
                     </li>
                 <?php else: ?>
                     
-                    <?php foreach ($reservations as $res): ?>
+                    <?php foreach ($commandes as $cmd): // <-- MODIFIÉ ?>
                         <li class="ticket">
                             <div class="ticket-main">
                                 <div class="ticket-header">
                                     <h3>
-                                        <?= htmlspecialchars($res['ville_depart']) ?> 
+                                        <?= htmlspecialchars($cmd['ville_depart']) ?> 
                                         <span class="arrow">→</span> 
-                                        <?= htmlspecialchars($res['ville_arrivee']) ?>
+                                        <?= htmlspecialchars($cmd['ville_arrivee']) ?>
                                     </h3>
                                 </div>
                                 <div class="ticket-details">
@@ -314,46 +314,47 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
                                         <span>📅</span>
                                         <p>
                                             <strong>Date</strong>
-                                            <?= htmlspecialchars(date('d M Y \à H:i', strtotime($res['date_depart']))) ?>
+                                            <?= htmlspecialchars(date('d M Y \à H:i', strtotime($cmd['date_depart']))) ?>
                                         </p>
                                     </div>
                                     <div class="detail-item">
                                         <span>🪑</span>
                                         <p>
-                                            <strong>Siège</strong>
-                                            N° <?= htmlspecialchars($res['numero_siege']) ?>
+                                            <strong>Siège(s)</strong>
+                                            N° <?= htmlspecialchars(implode(', N°', $cmd['sieges'])) ?>
                                         </p>
                                     </div>
                                 </div>
                             </div>
                            <div class="ticket-aside">
-    <p class="ticket-price">
-        <?= htmlspecialchars(number_format($res['prix'], 0, ',', ' ')) ?> XAF
-    </p>
-    
-    <?php 
-        $statut = $res['statut_reservation'];
-        $classe = 'status-en-attente'; // Défaut
-        if ($statut === 'PAYEE') $classe = 'status-payee';
-        if ($statut === 'ANNULEE') $classe = 'status-annulee';
-        if ($statut === 'TERMINEE') $classe = 'status-terminee';
-    ?>
-    <span class="status <?= $classe ?>">
-        <?= htmlspecialchars(ucfirst(strtolower(str_replace('_', ' ', $statut)))) ?>
-    </span>
+                                <p class="ticket-price">
+                                    <?= htmlspecialchars(number_format($cmd['montant_total'], 0, ',', ' ')) ?> XAF
+                                </p>
+                                
+                                <?php 
+                                    $statut = $cmd['statut']; // <-- MODIFIÉ
+                                    $classe = 'status-en-attente'; // Défaut
+                                    if ($statut === 'PAYEE') $classe = 'status-payee';
+                                    if ($statut === 'ANNULEE') $classe = 'status-annulee';
+                                    // Le statut 'TERMINEE' n'est pas sur la commande,
+                                    // mais on peut le laisser au cas où
+                                ?>
+                                <span class="status <?= $classe ?>">
+                                    <?= htmlspecialchars(ucfirst(strtolower(str_replace('_', ' ', $statut)))) ?>
+                                </span>
 
-    <div class="ticket-actions">
-        <?php if ($statut === 'EN_ATTENTE'): ?>
-            <a href="/payment/show/<?= $res['id_reservation'] ?>" class="btn-action btn-pay">
-                Payer maintenant
-            </a>
-        <?php elseif ($statut === 'PAYEE'): ?>
-            <a href="/ticket/view/<?= $res['id_reservation'] ?>" class="btn-action btn-view">
-                Voir le ticket
-            </a>
-        <?php endif; ?>
-    </div>
-</div>
+                                <div class="ticket-actions">
+                                    <?php if ($statut === 'EN_ATTENTE'): ?>
+                                        <a href="/payment/show/<?= $cmd['id_commande'] ?>" class="btn-action btn-pay">
+                                            Payer maintenant
+                                        </a>
+                                    <?php elseif ($statut === 'PAYEE'): ?>
+                                        <a href="/ticket/view/<?= $cmd['id_commande'] ?>" class="btn-action btn-view">
+                                            Voir le ticket
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                     
@@ -362,5 +363,6 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
             </ul>
         </main>
 
-    </div></body>
+    </div>
+</body>
 </html>

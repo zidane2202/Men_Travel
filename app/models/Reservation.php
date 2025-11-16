@@ -61,27 +61,28 @@ class Reservation {
      * Crée une nouvelle réservation dans la BDD.
      * Statut par défaut : EN_ATTENTE
      */
-    public function create($id_client, $id_voyage, $numero_siege) {
+    public function create($id_client, $id_voyage, $id_commande, $numero_siege) {
         $query = "INSERT INTO " . $this->table_name . "
                   SET 
                       id_client = :id_client,
                       id_voyage = :id_voyage,
+                      id_commande = :id_commande, -- NOUVEAU
                       numero_siege = :numero_siege,
-                      statut = 'EN_ATTENTE',
-                      type_reservation = 'siege'"; // On suppose 'siege'
+                      statut = 'EN_ATTENTE', -- Statut hérité de la commande
+                      type_reservation = 'siege'";
 
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(':id_client', $id_client);
         $stmt->bindParam(':id_voyage', $id_voyage);
+        $stmt->bindParam(':id_commande', $id_commande); // NOUVEAU
         $stmt->bindParam(':numero_siege', $numero_siege);
 
         if ($stmt->execute()) {
-            return $this->conn->lastInsertId(); // Retourne l'ID de la nouvelle réservation
+            return $this->conn->lastInsertId();
         }
         return false;
     }
-
   public function updateStatus($id_reservation, $statut) {
         $query = "UPDATE " . $this->table_name . "
                   SET statut = :statut
@@ -133,7 +134,8 @@ public function getTicketDetails($id_client, $id_reservation) {
                     c.nom AS client_nom,
                     c.prenom AS client_prenom,
                     c.telephone AS client_telephone,
-                    c.email AS client_email, -- <-- AJOUTEZ CETTE LIGNE
+                    c.email AS client_email,
+                    c.sexe AS client_sexe, -- <-- AJOUTEZ CETTE LIGNE
                     -- Voyage
                     v.ville_depart,
                     v.ville_arrivee,
@@ -170,6 +172,18 @@ public function getTicketDetails($id_client, $id_reservation) {
 
         // On retourne la ligne de résultat unique
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateStatusByCommandeId($id_commande, $statut) {
+        $query = "UPDATE " . $this->table_name . "
+                  SET statut = :statut
+                  WHERE id_commande = :id_commande";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':statut', $statut);
+        $stmt->bindParam(':id_commande', $id_commande);
+
+        return $stmt->execute();
     }
     /**
      * Crée une nouvelle réservation dans la BDD.
