@@ -15,7 +15,8 @@ use App\Controllers\AdminController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\PagesController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\AdminVoyageController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\AdminPersonnelController; // <-- AJOUTEZ CETTE LIGNE
-// 3. Initialiser le routeur
+use App\Controllers\AdminVehiculeController; // <-- AJOUTEZ CETTE LIGNE
+// // 3. Initialiser le routeur
 $router = new \Bramus\Router\Router();
 
 // --- DÉFINITION DES ROUTES ---
@@ -181,5 +182,34 @@ $router->get('/admin/employes/edit/(\d+)', function($id_employe) {
 $router->post('/admin/employes/update', function() {
     (new AdminPersonnelController())->updateEmploye();
 });
+
+$router->post('/admin/employes/archive', function() {
+    (new AdminPersonnelController())->archiveEmploye();
+});
+
+
+// ... (dans la section des ROUTES ADMINISTRATION)
+
+// Routes Gestion Véhicules
+$router->get('/admin/vehicules', function() {
+    (new AdminVehiculeController())->listVehicules();
+});
+$router->get('/admin/vehicules/create', function() {
+    (new AdminVehiculeController())->showCreateForm();
+});
+$router->post('/admin/vehicules/store', function() {
+    (new AdminVehiculeController())->storeVehicule();
+});
+$router->get('/admin/vehicules/edit/(\d+)', function($id_vehicule) {
+    (new AdminVehiculeController())->showEditForm($id_vehicule);
+});
+$router->post('/admin/vehicules/update', function() {
+    (new AdminVehiculeController())->updateVehicule();
+});
+$router->post('/admin/vehicules/delete', function() { // Soft Delete
+    (new AdminVehiculeController())->deleteVehicule();
+});
+
+// ... (le reste des routes administration)
 // 4. Lancer le routeur (maintenant qu'il connaît les routes GET)
 $router->run();

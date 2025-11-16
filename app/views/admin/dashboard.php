@@ -1,6 +1,11 @@
 <?php
+// $stats est maintenant disponible dans cette vue
 $pageTitle = 'Tableau de Bord Admin';
 $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
+
+// Extraction et formatage des variables statistiques pour la clarté
+$revenu_paye = number_format($stats['finance']['total_revenu_paye'] ?? 0, 0, ',', ' ');
+$revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 0, ',', ' ');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -10,91 +15,77 @@ $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
     <title><?= htmlspecialchars($pageTitle) ?> - Men Travel</title>
     
     <style>
+        /* (Styles généraux non répétés ici pour économiser de l'espace) */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f4f7f6; 
-            color: #333; 
-            margin: 0; 
-            padding: 0; 
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }
         .dashboard-wrapper { display: flex; min-height: 100vh; }
         
-        /* --- Sidebar Admin (Rouge) --- */
-        .sidebar { 
-            width: 260px; 
-            background-color: #343a40; /* Gris foncé/Noir */
-            color: #ffffff; 
-            display: flex; 
-            flex-direction: column; 
-            position: fixed; 
-            height: 100%; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .sidebar-header { 
-            padding: 1.5rem; 
-            text-align: center; 
-            border-bottom: 1px solid #495057; 
-        }
-        .sidebar-header h2 { margin: 0; font-size: 1.5rem; color: #d9534f; } /* Rouge Men Travel */
+        /* Sidebar et Menu sont inchangés */
+        .sidebar { width: 260px; background-color: #343a40; color: #ffffff; display: flex; flex-direction: column; position: fixed; height: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 1.5rem; text-align: center; border-bottom: 1px solid #495057; }
+        .sidebar-header h2 { margin: 0; font-size: 1.5rem; color: #d9534f; } 
         .sidebar-nav { flex-grow: 1; padding: 1rem 0; }
-        .sidebar-nav a { 
-            display: flex; 
-            align-items: center; 
-            gap: 0.75rem;
-            color: #dfe9f3; 
-            text-decoration: none; 
-            padding: 0.9rem 1.5rem; 
-            font-size: 1.05rem; 
-            transition: all 0.3s; 
-        }
-        .sidebar-nav a.active { 
-            background-color: #495057; 
-            color: #ffffff; 
-            font-weight: 600; 
-            border-left: 5px solid #d9534f; /* Rouge */
-            padding-left: calc(1.5rem - 5px); 
-        }
+        .sidebar-nav a { display: flex; align-items: center; gap: 0.75rem; color: #dfe9f3; text-decoration: none; padding: 0.9rem 1.5rem; font-size: 1.05rem; transition: all 0.3s; }
+        .sidebar-nav a.active { background-color: #495057; color: #ffffff; font-weight: 600; border-left: 5px solid #d9534f; padding-left: calc(1.5rem - 5px); }
         .sidebar-nav a:hover:not(.active) { background-color: #495057; padding-left: 1.8rem; }
-        
         .sidebar-footer { padding: 1.5rem; border-top: 1px solid #495057; }
-        .logout-link { 
-            display: block; 
-            background-color: #d9534f; 
-            color: #fff; 
-            text-align: center; 
-            padding: 0.75rem; 
-            border-radius: 8px; 
-            text-decoration: none; 
-            font-weight: 600; 
-        }
+        .logout-link { display: block; background-color: #d9534f; color: #fff; text-align: center; padding: 0.75rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
         
-        /* --- Contenu Principal --- */
-        .main-content { 
-            flex-grow: 1; 
-            margin-left: 260px; 
-            padding: 2.5rem; 
-            animation: fadeIn 0.5s ease-out; 
-        }
+        /* Contenu Principal */
+        .main-content { flex-grow: 1; margin-left: 260px; padding: 2.5rem; animation: fadeIn 0.5s ease-out; }
         .main-header { margin-bottom: 2rem; }
         .main-header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; color: #343a40; }
         .main-header p { margin: 0.5rem 0 0; font-size: 1.1rem; color: #555; }
         
-        /* Cartes de contenu */
+        /* Cartes de STATS */
         .content-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
         }
-        .content-card {
-            background: #fff;
+        .stats-card {
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
             padding: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-        .content-card h3 {
-            margin-top: 0;
-            color: #d9534f;
+        .stats-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0 0;
+            line-height: 1.1;
+        }
+        .stats-card .label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .text-revenue { color: #28a745; } /* Vert */
+        .text-pending { color: #ffc107; } /* Jaune */
+        .text-danger { color: #d9534f; } /* Rouge */
+        .text-info { color: #007bff; } /* Bleu */
+        
+        /* Liste des dernières réservations */
+        .recent-orders-list {
+            list-style: none;
+            padding: 0;
+        }
+        .recent-orders-list li {
+            padding: 10px 0;
+            border-bottom: 1px dashed #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recent-orders-list li:last-child {
+            border-bottom: none;
+        }
+        .order-amount {
+            font-weight: 700;
+            color: #28a745;
         }
     </style>
 </head>
@@ -111,6 +102,7 @@ $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
             <nav class="sidebar-nav">
                 <a href="/admin/dashboard" class="active">🏠 Tableau de bord</a>
                 <a href="/admin/voyages">🚌 Gérer les Voyages</a>
+                <a href="/admin/vehicules">🚗 Gérer les Véhicules</a>
                 <a href="/admin/reservations">🎟️ Voir les Réservations</a>
                 <a href="/admin/clients">👤 Gérer les Clients</a>
                 <a href="/admin/employes">🛠️ Gérer le Personnel</a>
@@ -124,22 +116,73 @@ $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
         <main class="main-content">
             <header class="main-header">
                 <h1>Bienvenue, <?= htmlspecialchars($admin_nom) ?> !</h1>
-                <p>Gérez les opérations de Men Travel depuis cet espace.</p>
+                <p>Aperçu des performances et des opérations.</p>
             </header>
             
             <div class="content-grid">
-                <div class="content-card">
-                    <h3>🚌 Voyages Programmés</h3>
-                    <p>Accédez à la liste des voyages pour en créer de nouveaux, modifier les prix ou les horaires.</p>
-                    <a href="/admin/voyages" style="color: #d9534f; font-weight: 600;">Gérer les voyages →</a>
+                
+                <div class="stats-card">
+                    <span class="label">Revenu Net Confirmé</span>
+                    <div class="value text-revenue"><?= $revenu_paye ?> XAF</div>
+                    <small style="color: #28a745;">Total payé par les clients</small>
                 </div>
 
-                <div class="content-card">
-                    <h3>🎟️ Réservations Récentes</h3>
-                    <p>Consultez la liste des passagers pour les prochains départs et vérifiez les statuts de paiement.</p>
-                    <a href="/admin/reservations" style="color: #d9534f; font-weight: 600;">Voir les réservations →</a>
+                <div class="stats-card">
+                    <span class="label">Revenu en Attente</span>
+                    <div class="value text-pending"><?= $revenu_attente ?> XAF</div>
+                    <small style="color: #ffc107;">Commandes non finalisées</small>
                 </div>
+                
+                <div class="stats-card">
+                    <span class="label">Bus/Vans Actifs</span>
+                    <div class="value text-info"><?= $stats['fleet']['vehicules_actifs'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Prêts à être assignés</small>
+                </div>
+                
+                <div class="stats-card">
+                    <span class="label">Voyages à Venir</span>
+                    <div class="value text-info"><?= $stats['fleet']['voyages_actifs'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Total programmé</small>
+                </div>
+                
+                <div class="stats-card">
+                    <span class="label">Chauffeurs Disponibles</span>
+                    <div class="value text-info"><?= $stats['fleet']['chauffeurs_actifs'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Personnel assignable</small>
+                </div>
+
+                <div class="stats-card">
+                    <span class="label">Total Clients</span>
+                    <div class="value text-info"><?= $stats['fleet']['total_clients_inscrits'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Base d'utilisateurs inscrits</small>
+                </div>
+                
             </div>
+            
+            <div class="content-grid" style="margin-top: 2.5rem;">
+                
+                <div class="stats-card" style="grid-column: 1 / 3;">
+                    <h3>Dernières Commandes</h3>
+                    <ul class="recent-orders-list">
+                        <?php if (empty($stats['recent_orders'])): ?>
+                            <li style="text-align: center; color: #777;">Aucune commande récente.</li>
+                        <?php else: ?>
+                            <?php foreach ($stats['recent_orders'] as $order): ?>
+                                <li>
+                                    <span>
+                                        <?= htmlspecialchars($order['ville_depart']) ?> → <?= htmlspecialchars($order['ville_arrivee']) ?>
+                                        <small style="color:#777; margin-left: 10px;">(<?= date('d/m H:i', strtotime($order['date_commande'])) ?>)</small>
+                                    </span>
+                                    <span class="order-amount"><?= number_format($order['montant_total'], 0, ',', ' ') ?> XAF</span>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                    <a href="/admin/reservations" style="display: block; margin-top: 1rem; text-align: center; color: #d9534f; font-weight: 600;">Voir toutes les commandes →</a>
+                </div>
+                
+            </div>
+            
         </main>
 
     </div></body>

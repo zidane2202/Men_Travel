@@ -1,7 +1,7 @@
 <?php 
-// $employes est passé par le contrôleur
+// $vehicules est passé par le contrôleur
 $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
-$pageTitle = 'Gestion du Personnel';
+$pageTitle = 'Gestion des Véhicules';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -9,6 +9,7 @@ $pageTitle = 'Gestion du Personnel';
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <style>
+        /* (Styles généraux non répétés ici pour économiser de l'espace) */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }
         .dashboard-wrapper { display: flex; min-height: 100vh; }
@@ -26,14 +27,19 @@ $pageTitle = 'Gestion du Personnel';
         .main-header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; color: #343a40; }
         
         /* Style du tableau */
-        .personnel-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-        .personnel-table th, .personnel-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
-        .personnel-table th { background-color: #e9ecef; font-weight: 600; color: #495057; text-transform: uppercase; }
-        .personnel-table tr:hover { background-color: #f8f9fa; }
-        .btn-action { padding: 0.5rem 0.8rem; border-radius: 5px; text-decoration: none; font-size: 0.8rem; font-weight: 600; transition: background-color 0.2s; }
+        .vehicule-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .vehicule-table th, .vehicule-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+        .vehicule-table th { background-color: #e9ecef; font-weight: 600; color: #495057; text-transform: uppercase; }
+        .vehicule-table tr:hover { background-color: #f8f9fa; }
+        .btn-action { padding: 0.5rem 0.8rem; border-radius: 5px; text-decoration: none; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
         .btn-add { background-color: #28a745; color: white; }
         .btn-edit { background-color: #007bff; color: white; margin-right: 5px; }
-        .status-pill { padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; background-color: #f0f0f0; }
+        
+        /* Style des pilules de statut */
+        .status-pill { padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .status-actif { background-color: #d4edda; color: #155724; }
+        .status-en_maintenance { background-color: #ffedcc; color: #856404; }
+        .status-hors_service { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -44,19 +50,17 @@ $pageTitle = 'Gestion du Personnel';
             <nav class="sidebar-nav">
                 <a href="/admin/dashboard">🏠 Tableau de bord</a>
                 <a href="/admin/voyages">🚌 Gérer les Voyages</a>
-                                <a href="/admin/vehicules">🚗 Gérer les Véhicules</a>
-
+                <a href="/admin/vehicules" class="active">🚗 Gérer les Véhicules</a>
                 <a href="/admin/reservations">🎟️ Voir les Réservations</a>
-                <a href="/admin/clients">👤 Gérer les Clients</a>
-                <a href="/admin/employes" class="active">🛠️ Gérer le Personnel</a>
+                <a href="/admin/employes">🛠️ Gérer le Personnel</a>
             </nav>
             <div class="sidebar-footer"><a href="/admin/logout" class="logout-link">Se déconnecter</a></div>
         </aside>
 
         <main class="main-content">
             <header class="main-header">
-                <h1>Gestion du Personnel</h1>
-                <a href="/admin/employes/create" class="btn-action btn-add">➕ Ajouter un employé</a>
+                <h1>Liste des Véhicules</h1>
+                <a href="/admin/vehicules/create" class="btn-action btn-add">➕ Ajouter un véhicule</a>
             </header>
             
             <?php if (isset($_GET['success'])): ?>
@@ -65,38 +69,38 @@ $pageTitle = 'Gestion du Personnel';
                 </div>
             <?php endif; ?>
 
-            <table class="personnel-table">
+            <table class="vehicule-table">
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Nom Complet</th>
-                        <th>Poste</th>
-                        <th>Contact</th>
-                        <th>Email</th>
-                        <th>Embauche</th>
+                        <th>Type</th>
+                        <th>Marque / Immat.</th>
+                        <th>Places</th>
+                        <th>Statut</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($employes)): ?>
-                        <tr><td colspan="7" style="text-align: center;">Aucun employé enregistré.</td></tr>
+                    <?php if (empty($vehicules)): ?>
+                        <tr><td colspan="6" style="text-align: center;">Aucun véhicule enregistré.</td></tr>
                     <?php else: ?>
-                        <?php foreach ($employes as $e): ?>
+                        <?php foreach ($vehicules as $v): 
+                            // Nettoyer la classe du statut (ex: 'en maintenance' -> 'en_maintenance')
+                            $status_class = 'status-' . str_replace(' ', '_', $v['statut']);
+                        ?>
                             <tr>
-                                <td><?= $e['id_employe'] ?></td>
-                                <td><?= htmlspecialchars($e['prenom'] . ' ' . $e['nom']) ?></td>
-                                <td><span class="status-pill"><?= htmlspecialchars($e['poste']) ?></span></td>
-                                <td><?= htmlspecialchars($e['telephone']) ?></td>
-                                <td><?= htmlspecialchars($e['email']) ?></td>
-                               <td><?= date('d M Y', strtotime($e['date_embauche'])) ?></td>
+                                <td><?= $v['id_vehicule'] ?></td>
+                                <td><?= htmlspecialchars($v['type']) ?></td>
+                                <td><?= htmlspecialchars($v['marque']) ?> (<?= htmlspecialchars($v['immatriculation']) ?>)</td>
+                                <td><?= $v['nombre_places'] ?></td>
                                 <td>
-                                    <a href="/admin/employes/edit/<?= $e['id_employe'] ?>" class="btn-action btn-edit">Modifier</a>
-                                    
-                                    <form action="/admin/employes/archive" method="POST" style="display:inline-block;" onsubmit="return confirm('Êtes-vous sûr de vouloir ARCHIVER le contrat de cet employé?');">
-                                        <input type="hidden" name="id_employe" value="<?= $e['id_employe'] ?>">
-                                        <button type="submit" class="btn-action" style="background-color: #dc3545; color: white;">Archiver</button>
-                                    </form>
+                                    <span class="status-pill <?= $status_class ?>">
+                                        <?= htmlspecialchars(ucfirst($v['statut'])) ?>
+                                    </span>
                                 </td>
+                                <td>
+                                    <a href="/admin/vehicules/edit/<?= $v['id_vehicule'] ?>" class="btn-action btn-edit">Modifier</a>
+                                    </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

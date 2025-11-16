@@ -1,6 +1,18 @@
 <?php 
+// $employeData, $specialisationData sont passés par le contrôleur
 $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
-$pageTitle = 'Ajouter un employé';
+$pageTitle = 'Modifier Employé N°' . ($employeData['id_employe'] ?? 'N/A');
+
+// Préparation des dates pour les champs HTML (YYYY-MM-DD)
+$date_naissance_html = date('Y-m-d', strtotime($employeData['date_naissance'] ?? 'now'));
+$date_embauche_html = date('Y-m-d', strtotime($employeData['date_embauche'] ?? 'now'));
+
+// Récupération des données de spécialisation avec vérification de l'existence
+$permis_numero = $specialisationData['permis_numero'] ?? '';
+$specialite = $specialisationData['specialite'] ?? '';
+
+// Liste de tous les postes possibles (identique à create.php)
+$postes = ['Chauffeur', 'Mecanicien', 'Comptable', 'AgentReservation', 'Gardien', 'Administrateur'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -8,7 +20,6 @@ $pageTitle = 'Ajouter un employé';
     <meta charset="UTF-8">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <style>
-        /* (Le CSS est identique au fichier create.php des voyages) */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }
         .dashboard-wrapper { display: flex; min-height: 100vh; }
@@ -32,15 +43,13 @@ $pageTitle = 'Ajouter un employé';
         .form-group label { margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #495057; }
         .form-group input, .form-group select { padding: 0.85rem; border: 1px solid #ddd; border-radius: 5px; }
         .form-actions { grid-column: 1 / 3; text-align: right; margin-top: 1rem; }
-        .btn-submit { padding: 0.85rem 1.5rem; border: none; border-radius: 5px; background-color: #28a745; color: white; font-weight: 700; cursor: pointer; }
+        .btn-submit { padding: 0.85rem 1.5rem; border: none; border-radius: 5px; background-color: #007bff; color: white; font-weight: 700; cursor: pointer; }
         .btn-cancel { background-color: #6c757d; color: white; padding: 0.7rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
         .error-message { background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
-
-        /* Champs conditionnels */
-        .conditional-field { border-top: 2px dashed #ddd; padding-top: 1rem; margin-top: 1rem; }
+        .conditional-field { grid-column: 1 / 3; border-top: 2px dashed #ddd; padding-top: 1rem; margin-top: 1rem; }
     </style>
 </head>
-<body>
+<body onload="toggleSpecialization('<?= htmlspecialchars($employeData['poste'] ?? '') ?>')">
 
     <div class="dashboard-wrapper">
         <aside class="sidebar">
@@ -48,8 +57,7 @@ $pageTitle = 'Ajouter un employé';
             <nav class="sidebar-nav">
                 <a href="/admin/dashboard">🏠 Tableau de bord</a>
                 <a href="/admin/voyages">🚌 Gérer les Voyages</a>
-                                <a href="/admin/vehicules">🚗 Gérer les Véhicules</a>
-
+                <a href="/admin/vehicules">🚗 Gérer les Véhicules</a>
                 <a href="/admin/reservations">🎟️ Voir les Réservations</a>
                 <a href="/admin/clients">👤 Gérer les Clients</a>
                 <a href="/admin/employes" class="active">🛠️ Gérer le Personnel</a>
@@ -59,7 +67,7 @@ $pageTitle = 'Ajouter un employé';
 
         <main class="main-content">
             <header class="main-header">
-                <h1>Ajouter un nouvel employé</h1>
+                <h1>Modifier les informations de l'employé</h1>
                 <a href="/admin/employes" class="btn-action btn-cancel" style="background-color: #6c757d;">← Retour</a>
             </header>
             
@@ -68,66 +76,71 @@ $pageTitle = 'Ajouter un employé';
             <?php endif; ?>
 
             <div class="form-card">
-                <form action="/admin/employes/store" method="POST">
+                
+                <form action="/admin/employes/update" method="POST">
+                    <input type="hidden" name="id_employe" value="<?= $employeData['id_employe'] ?? '' ?>">
+
                     <div class="form-grid">
 
                         <div class="form-group">
                             <label for="poste">Poste :</label>
                             <select id="poste" name="poste" required onchange="toggleSpecialization(this.value)">
-                                <?php 
-                                    $postes = ['Chauffeur', 'Mecanicien', 'Comptable', 'AgentReservation', 'Gardien', 'Administrateur'];
-                                    foreach ($postes as $p):
-                                ?>
-                                    <option value="<?= $p ?>"><?= ucfirst($p) ?></option>
+                                <?php foreach ($postes as $p): ?>
+                                    <option value="<?= $p ?>" <?= (($employeData['poste'] ?? '') == $p) ? 'selected' : '' ?>>
+                                        <?= ucfirst($p) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="form-group">
+                            </div>
 
                         <div class="form-group">
                             <label for="nom">Nom :</label>
-                            <input type="text" id="nom" name="nom" required>
+                            <input type="text" id="nom" name="nom" value="<?= htmlspecialchars($employeData['nom'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="prenom">Prénom :</label>
-                            <input type="text" id="prenom" name="prenom" required>
+                            <input type="text" id="prenom" name="prenom" value="<?= htmlspecialchars($employeData['prenom'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="email">Email :</label>
-                            <input type="email" id="email" name="email" required>
+                            <input type="email" id="email" name="email" value="<?= htmlspecialchars($employeData['email'] ?? '') ?>" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="telephone">Téléphone :</label>
-                            <input type="tel" id="telephone" name="telephone" placeholder="+237 6XX XX XX XX" required>
+                            <input type="tel" id="telephone" name="telephone" value="<?= htmlspecialchars($employeData['telephone'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="date_naissance">Date de Naissance :</label>
-                            <input type="date" id="date_naissance" name="date_naissance" required>
+                            <input type="date" id="date_naissance" name="date_naissance" value="<?= $date_naissance_html ?>" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="date_embauche">Date d'Embauche :</label>
-                            <input type="date" id="date_embauche" name="date_embauche" required>
+                            <input type="date" id="date_embauche" name="date_embauche" value="<?= $date_embauche_html ?>" required>
                         </div>
                         
-                        <div class="form-group"></div>
-
-
-                        <div id="chauffeur-fields" class="conditional-field" style="display:none;">
-                            <div class="form-group">
-                                <label for="permis_numero">Numéro de Permis :</label>
-                                <input type="text" id="permis_numero" name="permis_numero">
+                        <div id="specialization-fields" style="grid-column: 1 / 3;">
+                            <div id="chauffeur-fields" class="conditional-field" style="display:none; border-color: #007bff;">
+                                <h3>Détails du Chauffeur</h3>
+                                <div class="form-group">
+                                    <label for="permis_numero">Numéro de Permis :</label>
+                                    <input type="text" id="permis_numero" name="permis_numero" value="<?= htmlspecialchars($permis_numero) ?>">
+                                </div>
                             </div>
-                        </div>
-                        <div id="mecanicien-fields" class="conditional-field" style="display:none;">
-                            <div class="form-group">
-                                <label for="specialite">Spécialité :</label>
-                                <input type="text" id="specialite" name="specialite" placeholder="Ex: Moteurs Diesel">
+                            <div id="mecanicien-fields" class="conditional-field" style="display:none; border-color: #d9534f;">
+                                <h3>Détails du Mécanicien</h3>
+                                <div class="form-group">
+                                    <label for="specialite">Spécialité :</label>
+                                    <input type="text" id="specialite" name="specialite" value="<?= htmlspecialchars($specialite) ?>" placeholder="Ex: Moteurs Diesel">
+                                </div>
                             </div>
                         </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn-submit">Enregistrer l'employé</button>
+                            <button type="submit" class="btn-submit" style="background-color: #007bff;">Enregistrer les modifications</button>
                         </div>
                     </div>
                 </form>
@@ -139,30 +152,28 @@ $pageTitle = 'Ajouter un employé';
         function toggleSpecialization(poste) {
             const chauffeur = document.getElementById('chauffeur-fields');
             const mecanicien = document.getElementById('mecanicien-fields');
-            
-            // Masquer tout par défaut
+            const permisInput = document.getElementById('permis_numero');
+            const specialiteInput = document.getElementById('specialite');
+
+            // Masquer tout par défaut et retirer l'obligation
             chauffeur.style.display = 'none';
             mecanicien.style.display = 'none';
+            permisInput.required = false; 
+            specialiteInput.required = false; 
 
-            // Afficher le champ requis
+            // Afficher le champ requis et le rendre obligatoire
             if (poste === 'Chauffeur') {
                 chauffeur.style.display = 'block';
-                // Rendre le permis obligatoire s'il est affiché
-                document.getElementById('permis_numero').required = true; 
+                permisInput.required = true; 
             } else if (poste === 'Mecanicien') {
                 mecanicien.style.display = 'block';
-                // Rendre la spécialité obligatoire s'il est affiché
-                document.getElementById('specialite').required = true; 
-            } else {
-                // Rendre les champs facultatifs si les divs sont masquées
-                document.getElementById('permis_numero').required = false; 
-                document.getElementById('specialite').required = false; 
+                specialiteInput.required = true; 
             }
         }
 
         // Exécuter au chargement initial
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialiser le champ par défaut (si un poste est déjà sélectionné)
+            // Utiliser le poste actuel de l'employé
             const initialPoste = document.getElementById('poste').value;
             toggleSpecialization(initialPoste);
         });

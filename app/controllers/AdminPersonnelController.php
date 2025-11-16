@@ -115,10 +115,78 @@ class AdminPersonnelController {
     /**
      * Traite la mise à jour de l'employé.
      */
-    public function updateEmploye() {
-        // La logique d'update et de mise à jour des spécialisations est complexe.
-        // Nous la mettrons en place si l'administrateur en a besoin.
-        header("Location: /admin/employes?warning=Fonction d'édition non implémentée.");
-        exit();
+   public function updateEmploye() {
+        // Validation basique
+        if (empty($_POST['id_employe']) || empty($_POST['email']) || empty($_POST['poste'])) {
+             header("Location: /admin/employes?error=ID ou champs principaux manquants pour la mise à jour.");
+             exit();
+        }
+        
+        $id_employe = $_POST['id_employe'];
+        $redirect_url = "/admin/employes/edit/" . $id_employe;
+
+        try {
+            $employeModel = new Employe($this->db);
+            
+            // 1. Mise à jour des données principales (table 'employes')
+            $employeModel->update(
+                $id_employe, $_POST['nom'], $_POST['prenom'], $_POST['date_naissance'], 
+                $_POST['email'], $_POST['telephone'], $_POST['poste'], $_POST['date_embauche']
+            );
+
+            // 2. Mise à jour des spécialisations (Logique simple: UPDATE ou INSERT/DELETE)
+            if ($_POST['poste'] === 'Chauffeur') {
+                $chauffeurModel = new Chauffeur($this->db);
+                // Si l'enregistrement n'existe pas encore, on le crée (le modèle doit gérer ça)
+                $chauffeurModel->updateOrCreate($id_employe, $_POST['permis_numero']); 
+            } elseif ($_POST['poste'] === 'Mecanicien') {
+                $mecanicienModel = new Mecanicien($this->db);
+                $mecanicienModel->updateOrCreate($id_employe, $_POST['specialite']);
+            }
+            
+            // Note: Si le poste change (ex: Chauffeur -> Comptable), on devrait supprimer l'ancienne entrée
+            // Pour simplifier, nous laissons les vieilles entrées de spécialisation intactes.
+
+            header("Location: /admin/employes?success=Employé N°$id_employe mis à jour avec succès.");
+            exit();
+
+        } catch (PDOException $e) {
+            $errorMessage = "Erreur BDD (Email déjà utilisé ou données incorrectes).";
+            header("Location: " . $redirect_url . "?error=" . urlencode($errorMessage));
+            exit();
+        } catch (\Exception $e) {
+            header("Location: " . $redirect_url . "?error=" . urlencode($e->getMessage()));
+            exit();
+        }
+    }
+    // ... (dans AdminPersonnelController.php, après updateEmploye())
+
+    /**
+     * Traite l'archivage logique d'un employé.
+     */
+    public function archiveEmploye() {
+        try {
+            $employeModel = new Employe($this->db);
+            $id_employe = $_POST['id_employe'] ?? null;
+            
+            if (!$id_employe) {
+                header("Location: /admin/employes?error=ID d'employé manquant.");
+                exit();
+            }
+
+            $result = $employeModel->archive($id_employe);
+
+            if ($result) {
+                header("Location: /admin/employes?success=Employé N°$id_employe a été archivé et désactivé.");
+                exit();
+            } else {
+                header("Location: /admin/employes?error=Échec de l'archivage de l'employé.");
+                exit();
+            }
+
+        } catch (\Exception $e) {
+            header("Location: /admin/employes?error=" . urlencode("Erreur d'archivage: " . $e->getMessage()));
+            exit();
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace App\Controllers;
 
 use App\Core\Database;
 use App\Models\CompteEmploye;
-
+use App\Models\AdminStatsModel; // <-- AJOUTEZ CETTE LIGNE
 class AdminController {
 
     private $db;
@@ -50,11 +50,18 @@ class AdminController {
     /**
      * Affiche le tableau de bord admin.
      */
-    public function showDashboard() {
-        $pageTitle = "Tableau de Bord Admin";
-        require __DIR__ . '/../views/admin/dashboard.php';
-    }
+   public function showDashboard() {
+        if (!isset($_SESSION['admin_id'])) {
+            header('Location: /admin/login?error=Accès refusé. Veuillez vous connecter.');
+            exit();
+        }
+        
+        $statsModel = new AdminStatsModel($this->db);
+        $stats = $statsModel->getDashboardStats(); // <-- Récupération de toutes les données
 
+        $pageTitle = "Tableau de Bord Admin";
+        require __DIR__ . '/../views/admin/dashboard.php'; // On passe $stats à la vue
+    }
     /**
      * Gère la déconnexion admin.
      */
