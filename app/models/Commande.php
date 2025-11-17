@@ -174,4 +174,50 @@ class Commande {
 
         return $commandes;
     }
+   // ... (dans app/models/Commande.php)
+
+    public function findAllForAdmin() {
+        $query = "SELECT
+                    c.id_commande,
+                    c.montant_total,
+                    c.statut,
+                    c.date_commande,
+                    v.ville_depart,
+                    v.ville_arrivee,
+                    cl.prenom AS client_prenom,
+                    cl.nom AS client_nom
+                FROM
+                    " . $this->table_name . " c
+                JOIN
+                    voyages v ON c.id_voyage = v.id_voyage
+                JOIN
+                    clients cl ON c.id_client = cl.id_client
+                ORDER BY
+                    c.date_commande DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $commandes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Maintenant, ajoutons la liste des sièges pour chaque commande
+        $seatsQuery = "SELECT numero_siege FROM reservations WHERE id_commande = :id_commande ORDER BY numero_siege ASC";
+        $seatStmt = $this->conn->prepare($seatsQuery);
+
+        // ⚠️ CORRECTION : On doit faire le bindParam dans la boucle
+        foreach ($commandes as &$commande) {
+            $id_commande = $commande['id_commande']; // On extrait la variable
+            $seatStmt->bindParam(':id_commande', $id_commande);
+            $seatStmt->execute();
+            $seats = $seatStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            
+            // Formatage de la liste des sièges (ex: [5, 6, 7] -> "N° 5, 6, 7")
+            $commande['sieges_list'] = empty($seats) ? 'N/A' : 'N° ' . implode(', ', $seats);
+        }
+        unset($commande); // Supprimer la référence
+        
+        return $commandes;
+    }
+
+// ... (dans app/models/Commande.php)
+// ... (Votre méthode findCommandsByClientId() a la même erreur, corrigez-la de la même façon)
 }

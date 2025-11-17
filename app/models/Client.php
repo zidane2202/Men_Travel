@@ -185,7 +185,16 @@ class Client {
         }
         return false;
     }
+public function findAll() {
+        $query = "SELECT 
+                    id_client, nom, prenom, email, telephone, date_inscription
+                FROM " . $this->table_name . "
+                ORDER BY date_inscription DESC";
 
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } // Fin de la classe Clien
 
 ?>

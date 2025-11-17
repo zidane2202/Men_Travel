@@ -16,6 +16,7 @@ use App\Controllers\PagesController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\AdminVoyageController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\AdminPersonnelController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\AdminVehiculeController; // <-- AJOUTEZ CETTE LIGNE
+use App\Controllers\AdminReservationController; // <-- AJOUTEZ CETTE LIGNE
 // // 3. Initialiser le routeur
 $router = new \Bramus\Router\Router();
 
@@ -210,6 +211,14 @@ $router->post('/admin/vehicules/delete', function() { // Soft Delete
     (new AdminVehiculeController())->deleteVehicule();
 });
 
+$router->get('/admin/reservations', function() {
+    (new AdminReservationController())->listCommandes();
+});
+
+
+$router->get('/admin/clients', function() {
+    (new AdminController())->listClients();
+});
 // ... (le reste des routes administration)
 // 4. Lancer le routeur (maintenant qu'il connaît les routes GET)
 $router->run();

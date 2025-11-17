@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Core\Database;
 use App\Models\CompteEmploye;
 use App\Models\AdminStatsModel; // <-- AJOUTEZ CETTE LIGNE
+use App\Models\Client; // <-- AJOUTEZ CETTE LIGNE
 class AdminController {
 
     private $db;
@@ -73,5 +74,12 @@ class AdminController {
         
         header("Location: /admin/login?success=Vous avez été déconnecté.");
         exit();
+    }
+    public function listClients() {
+        $clientModel = new Client($this->db);
+        $clients = $clientModel->findAll(); 
+
+        $pageTitle = "Gestion des Clients";
+        require __DIR__ . '/../views/admin/clients/index.php';
     }
 }

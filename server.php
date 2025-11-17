@@ -1,6 +1,6 @@
 <?php
 // Fichier: server.php (à la racine)
-
+define('ROOT_DIR', dirname(__FILE__));
 $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
 );
