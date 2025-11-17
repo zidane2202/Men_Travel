@@ -20,8 +20,8 @@ class Client {
     public $adresse;
     public $mot_de_passe;
 
-    public function __construct($db) {
-        $this->conn = $db;
+public function __construct(PDO $db) { // <-- L'erreur vient de là
+    $this->conn = $db;
     }
 
     /**

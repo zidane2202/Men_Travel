@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Reservation;
 use App\Models\Commande; // <-- IMPORTATION AJOUTÉE
 
+use PDO;
 class ClientController {
 
     private $db; // Propriété pour la connexion BDD
@@ -97,9 +98,43 @@ class ClientController {
             header("Location: /login?error=Veuillez vous connecter.");
             exit();
         }
+
+        $id_client = $_SESSION['client_id'];
+        $clientModel = new Client($this->db);
+        $commandeModel = new Commande($this->db);
+
+        // 1. Récupérer le nom complet (si non déjà en session)
+        $clientData = $clientModel->findById($id_client); // Réutilise findById pour les détails
+
+        // 2. Récupérer les statistiques de réservation (par exemple, le nombre total)
+        // NOTE: findCommandsByClientId dans Commande.php est un peu lourd pour juste un count.
+        
+        $statsQuery = "SELECT COUNT(id_commande) as total_trips, 
+                              MAX(date_commande) as last_booking 
+                       FROM commandes 
+                       WHERE id_client = :id_client AND statut = 'PAYEE'";
+        $statsStmt = $this->db->prepare($statsQuery);
+        $statsStmt->bindParam(':id_client', $id_client);
+        $statsStmt->execute();
+        $reservationStats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+        // 3. Récupérer le prochain voyage (limit 1)
+        $nextTripQuery = "SELECT v.ville_depart, v.ville_arrivee, v.date_depart 
+                          FROM commandes c
+                          JOIN voyages v ON c.id_voyage = v.id_voyage
+                          WHERE c.id_client = :id_client 
+                          AND c.statut = 'PAYEE'
+                          AND v.date_depart >= NOW() 
+                          ORDER BY v.date_depart ASC 
+                          LIMIT 1";
+        $tripStmt = $this->db->prepare($nextTripQuery);
+        $tripStmt->bindParam(':id_client', $id_client);
+        $tripStmt->execute();
+        $nextTrip = $tripStmt->fetch(PDO::FETCH_ASSOC);
+
+        // On passe les données à la vue
         require __DIR__ . '/../views/client/dashboard.php';
     }
-
     // Gère la déconnexion
     public function handleLogout() {
         session_destroy();
