@@ -219,6 +219,9 @@ $router->get('/admin/reservations', function() {
 $router->get('/admin/clients', function() {
     (new AdminController())->listClients();
 });
+$router->get('/admin/clients/view/(\d+)', function($id_client) {
+    (new App\Controllers\AdminController())->viewClientDetails($id_client);
+});
 // ... (le reste des routes administration)
 // 4. Lancer le routeur (maintenant qu'il connaît les routes GET)
 $router->run();

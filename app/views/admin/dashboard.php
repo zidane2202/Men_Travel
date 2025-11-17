@@ -6,6 +6,13 @@ $admin_nom = $_SESSION['admin_nom'] ?? 'Admin';
 // Extraction et formatage des variables statistiques pour la clarté
 $revenu_paye = number_format($stats['finance']['total_revenu_paye'] ?? 0, 0, ',', ' ');
 $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 0, ',', ' ');
+
+// --- CALCUL NÉCESSAIRE POUR LES NOUVELLES CARTES ---
+$capacite = $stats['fleet']['capacite_totale'] ?? 0;
+$reserves = $stats['fleet']['total_reserves'] ?? 0;
+$taux_occupation = ($capacite > 0) ? round(($reserves / $capacite) * 100) : 0;
+// Détermine la couleur de la carte d'occupation
+$taux_occupation_classe = ($taux_occupation > 80) ? 'text-revenue' : (($taux_occupation > 50) ? 'text-pending' : 'text-danger');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -15,12 +22,12 @@ $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 
     <title><?= htmlspecialchars($pageTitle) ?> - Men Travel</title>
     
     <style>
-        /* (Styles généraux non répétés ici pour économiser de l'espace) */
+        /* (Styles généraux sont conservés) */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }
         .dashboard-wrapper { display: flex; min-height: 100vh; }
         
-        /* Sidebar et Menu sont inchangés */
+        /* Sidebar */
         .sidebar { width: 260px; background-color: #343a40; color: #ffffff; display: flex; flex-direction: column; position: fixed; height: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .sidebar-header { padding: 1.5rem; text-align: center; border-bottom: 1px solid #495057; }
         .sidebar-header h2 { margin: 0; font-size: 1.5rem; color: #d9534f; } 
@@ -63,10 +70,10 @@ $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 
             color: #6c757d;
             text-transform: uppercase;
         }
-        .text-revenue { color: #28a745; } /* Vert */
-        .text-pending { color: #ffc107; } /* Jaune */
-        .text-danger { color: #d9534f; } /* Rouge */
-        .text-info { color: #007bff; } /* Bleu */
+        .text-revenue { color: #28a745; } 
+        .text-pending { color: #ffc107; } 
+        .text-danger { color: #d9534f; } 
+        .text-info { color: #007bff; }
         
         /* Liste des dernières réservations */
         .recent-orders-list {
@@ -122,6 +129,12 @@ $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 
             <div class="content-grid">
                 
                 <div class="stats-card">
+                    <span class="label">Taux d'Occupation Global</span>
+                    <div class="value <?= $taux_occupation_classe ?>"><?= $taux_occupation ?>%</div>
+                    <small style="color: #6c757d;">Sièges réservés / <?= $capacite ?> Totaux</small>
+                </div>
+                
+                <div class="stats-card">
                     <span class="label">Revenu Net Confirmé</span>
                     <div class="value text-revenue"><?= $revenu_paye ?> XAF</div>
                     <small style="color: #28a745;">Total payé par les clients</small>
@@ -132,17 +145,23 @@ $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 
                     <div class="value text-pending"><?= $revenu_attente ?> XAF</div>
                     <small style="color: #ffc107;">Commandes non finalisées</small>
                 </div>
-                
+
                 <div class="stats-card">
-                    <span class="label">Bus/Vans Actifs</span>
-                    <div class="value text-info"><?= $stats['fleet']['vehicules_actifs'] ?? 0 ?></div>
-                    <small style="color: #007bff;">Prêts à être assignés</small>
+                    <span class="label">Nouveaux Clients (30 jours)</span>
+                    <div class="value text-info"><?= $stats['fleet']['clients_nouveaux'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Croissance du dernier mois</small>
                 </div>
                 
                 <div class="stats-card">
                     <span class="label">Voyages à Venir</span>
                     <div class="value text-info"><?= $stats['fleet']['voyages_actifs'] ?? 0 ?></div>
-                    <small style="color: #007bff;">Total programmé</small>
+                    <small style="color: #007bff;">Actuellement programmés</small>
+                </div>
+                
+                <div class="stats-card">
+                    <span class="label">Bus/Vans Actifs</span>
+                    <div class="value text-info"><?= $stats['fleet']['vehicules_actifs'] ?? 0 ?></div>
+                    <small style="color: #007bff;">Prêts à être assignés</small>
                 </div>
                 
                 <div class="stats-card">
@@ -152,9 +171,9 @@ $revenu_attente = number_format($stats['finance']['total_revenu_attente'] ?? 0, 
                 </div>
 
                 <div class="stats-card">
-                    <span class="label">Total Clients</span>
-                    <div class="value text-info"><?= $stats['fleet']['total_clients_inscrits'] ?? 0 ?></div>
-                    <small style="color: #007bff;">Base d'utilisateurs inscrits</small>
+                    <span class="label">Véhicules en Maintenance</span>
+                    <div class="value text-danger"><?= $stats['fleet']['vehicules_maintenance'] ?? 0 ?></div>
+                    <small style="color: #d9534f;">Doivent être réparés rapidement</small>
                 </div>
                 
             </div>

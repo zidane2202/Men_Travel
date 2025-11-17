@@ -7,6 +7,7 @@ use App\Core\Database;
 use App\Models\CompteEmploye;
 use App\Models\AdminStatsModel; // <-- AJOUTEZ CETTE LIGNE
 use App\Models\Client; // <-- AJOUTEZ CETTE LIGNE
+use App\Models\Commande; // Assurez-vous que cette ligne est en haut du fichier
 class AdminController {
 
     private $db;
@@ -81,5 +82,26 @@ class AdminController {
 
         $pageTitle = "Gestion des Clients";
         require __DIR__ . '/../views/admin/clients/index.php';
+    }
+    public function viewClientDetails($id_client) {
+        $clientModel = new \App\Models\Client($this->db);
+        $commandeModel = new Commande($this->db); // Utilisation du modèle Commande
+        
+        // 1. Récupérer les détails du profil
+        $clientData = $clientModel->findById($id_client); 
+        
+        if (!$clientData) {
+            header("Location: /admin/clients?error=Client introuvable.");
+            exit();
+        }
+
+        // 2. Récupérer tout l'historique des commandes (AVEC LES SIÈGES)
+        // La complexité est gérée dans le modèle Commande, c'est propre.
+        $orders = $commandeModel->findByClientIdForAdmin($id_client);
+
+        $pageTitle = "Client N°" . $id_client . ": " . $clientData['prenom'] . " " . $clientData['nom'];
+        
+        // On envoie $clientData et $orders à la vue
+        require __DIR__ . '/../views/admin/clients/detail.php';
     }
 }

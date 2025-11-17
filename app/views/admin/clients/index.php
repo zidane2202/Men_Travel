@@ -77,12 +77,15 @@ $pageTitle = "Gestion des Clients";
                                 <td><?= htmlspecialchars($client['prenom'] . ' ' . $client['nom']) ?></td>
                                 <td><?= htmlspecialchars($client['email']) ?></td>
                                 <td><?= htmlspecialchars($client['telephone']) ?></td>
+                                // ... (inside the foreach loop)
+
                                 <td><?= date('d M Y', strtotime($client['date_inscription'])) ?></td>
                                 <td>
                                     <a href="/admin/clients/view/<?= $client['id_client'] ?>" class="btn-action btn-detail">Détails</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+// ...
                     <?php endif; ?>
                 </tbody>
             </table>

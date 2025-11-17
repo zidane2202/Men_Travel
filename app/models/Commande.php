@@ -217,7 +217,39 @@ class Commande {
         
         return $commandes;
     }
+public function findByClientIdForAdmin($id_client) {
+        $query = "SELECT
+                    c.id_commande, c.montant_total, c.statut, c.date_commande,
+                    v.ville_depart, v.ville_arrivee, v.date_depart
+                FROM
+                    " . $this->table_name . " c
+                JOIN
+                    voyages v ON c.id_voyage = v.id_voyage
+                WHERE
+                    c.id_client = :id_client
+                ORDER BY c.date_commande DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id_client', $id_client);
+        $stmt->execute();
+        $commandes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Récupérer les sièges associés (Logique du second query)
+        $seatsQuery = "SELECT numero_siege FROM reservations WHERE id_commande = :id_commande ORDER BY numero_siege ASC";
+        $seatStmt = $this->conn->prepare($seatsQuery);
+
+        foreach ($commandes as &$commande) {
+            $id_commande = $commande['id_commande'];
+            $seatStmt->bindParam(':id_commande', $id_commande);
+            $seatStmt->execute();
+            $seats = $seatStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            
+            // Formatage de la liste des sièges
+            $commande['sieges_list'] = empty($seats) ? 'N/A' : implode(', ', $seats);
+        }
+
+        return $commandes;
+    }
 // ... (dans app/models/Commande.php)
 // ... (Votre méthode findCommandsByClientId() a la même erreur, corrigez-la de la même façon)
 }
