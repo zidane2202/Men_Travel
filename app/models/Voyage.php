@@ -14,15 +14,11 @@ class Voyage {
     }
 
     /**
-     * Recherche des voyages disponibles.
-     */
-    /**
-     * Recherche dynamique des voyages disponibles.
-     * Les critères sont appliqués SEULEMENT s'ils sont fournis.
+     * Recherche dynamique des voyages disponibles. (CLIENT SIDE)
+     * Applique les filtres (ville/date) seulement s'ils sont fournis.
      */
     public function search($ville_depart, $ville_arrivee, $date) {
         
-        // 1. Début de la requête SQL (sans la clause WHERE)
         $query = "SELECT
                     v.id_voyage, v.ville_depart, v.ville_arrivee, v.date_depart, v.prix, v.statut,
                     veh.marque, veh.nombre_places,
@@ -37,13 +33,12 @@ class Voyage {
                     employes e ON c.id_chauffeur = e.id_employe
                 WHERE
                     v.statut = 'programmé' 
-                    AND v.is_deleted = 0"; // Toujours filtrer les voyages actifs
+                    AND v.is_deleted = 0
+                    AND v.date_depart >= NOW()"; // <-- Exclut les voyages passés
 
         $params = [];
-        $where_clauses = ""; // Initialiser la chaîne de clauses
+        $where_clauses = ""; 
 
-        // 2. Construction dynamique de la clause WHERE
-        
         if (!empty($ville_depart)) {
             $where_clauses .= " AND v.ville_depart = :ville_depart";
             $params[':ville_depart'] = htmlspecialchars(strip_tags($ville_depart));
@@ -55,18 +50,14 @@ class Voyage {
         }
 
         if (!empty($date)) {
-            // Important: DATE(v.date_depart) = :date_depart pour ignorer l'heure
+            // Si la date est spécifiée, on ne la recherche que pour le jour donné
             $where_clauses .= " AND DATE(v.date_depart) = :date_depart";
             $params[':date_depart'] = htmlspecialchars(strip_tags($date));
-        } else {
-            // Si aucune date n'est fournie, afficher seulement les voyages futurs
-            $where_clauses .= " AND v.date_depart >= NOW()"; 
         }
+        // Note: Si la date est vide, le filtre principal (v.date_depart >= NOW()) est utilisé.
 
-        // 3. Finalisation de la requête
         $query .= $where_clauses . " ORDER BY v.date_depart ASC";
 
-        // 4. Préparation et liaison
         $stmt = $this->conn->prepare($query);
 
         foreach ($params as $key => &$value) {
@@ -77,9 +68,38 @@ class Voyage {
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Récupère TOUS les voyages programmés (actifs et futurs).
+     */
+    public function getAllProgrammed() {
+        
+        $query = "SELECT
+                    v.id_voyage, v.ville_depart, v.ville_arrivee, v.date_depart, v.prix,
+                    v.statut, veh.marque, veh.nombre_places, CONCAT(e.prenom, ' ', e.nom) as chauffeur_nom
+                FROM
+                    " . $this->table_name . " v
+                JOIN
+                    vehicules veh ON v.id_vehicule = veh.id_vehicule
+                JOIN
+                    chauffeurs c ON v.id_chauffeur = c.id_chauffeur
+                JOIN
+                    employes e ON c.id_chauffeur = e.id_employe
+                WHERE
+                    v.statut = 'programmé'
+                    AND v.is_deleted = 0
+                    AND v.date_depart >= NOW() -- <-- CONDITION CLÉ
+                ORDER BY
+                    v.date_depart ASC"; 
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     
     /**
-     * Trouve un voyage spécifique par son ID
+     * Trouve un voyage spécifique par son ID (Pour l'édition et l'affichage des sièges).
      */
    public function findById($id_voyage) {
         $query = "SELECT
@@ -88,9 +108,9 @@ class Voyage {
                     v.ville_arrivee, 
                     v.date_depart, 
                     v.prix,
-                    v.statut,         -- <-- AJOUTÉ
-                    v.id_vehicule,    -- <-- AJOUTÉ
-                    v.id_chauffeur,   -- <-- AJOUTÉ
+                    v.statut, 
+                    v.id_vehicule, 
+                    v.id_chauffeur, 
                     veh.nombre_places
                 FROM
                     " . $this->table_name . " v
@@ -108,41 +128,8 @@ class Voyage {
     }
 
     /**
-     * NOUVELLE MÉTHODE: Récupère TOUS les voyages programmés.
+     * Crée un nouveau voyage (pour l'administration)
      */
-    public function getAllProgrammed() {
-        
-        $query = "SELECT
-                    v.id_voyage,
-                    v.ville_depart,
-                    v.ville_arrivee,
-                    v.date_depart,
-                    v.prix,
-                    v.statut,    -- <-- CETTE LIGNE A ÉTÉ AJOUTÉE
-                    veh.marque,
-                    veh.nombre_places,
-                    CONCAT(e.prenom, ' ', e.nom) as chauffeur_nom
-                FROM
-                    " . $this->table_name . " v
-                JOIN
-                    vehicules veh ON v.id_vehicule = veh.id_vehicule
-                JOIN
-                    chauffeurs c ON v.id_chauffeur = c.id_chauffeur
-                JOIN
-                    employes e ON c.id_chauffeur = e.id_employe
-                WHERE
-                    v.statut = 'programmé'
-                    AND v.is_deleted = 0  -- <-- AJOUT DE LA CONDITION
-                ORDER BY
-                    v.date_depart ASC"; 
-
-        // --- CORRECTION ICI ---
-        // C'était $this.conn, maintenant c'est $this->conn
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
     public function create($ville_depart, $ville_arrivee, $date_depart, $id_vehicule, $id_chauffeur, $prix) {
         $query = "INSERT INTO " . $this->table_name . "
                   SET 
@@ -164,11 +151,14 @@ class Voyage {
         $stmt->bindParam(':prix', $prix);
 
         if ($stmt->execute()) {
-            // --- CORRECTION ICI ---
-            return $this->conn->lastInsertId(); // Utilise ->conn
+            return $this->conn->lastInsertId();
         }
         return false;
     }
+    
+    /**
+     * Récupère le nombre total de places pour un voyage donné.
+     */
     public function getTotalSeatsByVoyageId($id_voyage) {
         $query = "SELECT
                     veh.nombre_places
@@ -183,10 +173,13 @@ class Voyage {
         $stmt->bindParam(':id_voyage', $id_voyage);
         $stmt->execute();
         
-        // Retourne le nombre de places (un entier)
         return $stmt->fetchColumn(); 
     }
-public function update($id_voyage, $ville_depart, $ville_arrivee, $date_depart, $id_vehicule, $id_chauffeur, $prix, $statut) {
+    
+    /**
+     * Met à jour les informations d'un voyage existant.
+     */
+    public function update($id_voyage, $ville_depart, $ville_arrivee, $date_depart, $id_vehicule, $id_chauffeur, $prix, $statut) {
         $query = "UPDATE " . $this->table_name . "
                   SET 
                       ville_depart = :ville_depart,
@@ -214,7 +207,7 @@ public function update($id_voyage, $ville_depart, $ville_arrivee, $date_depart, 
     }
 
     /**
-     * Supprime un voyage par son ID.
+     * Supprime logiquement un voyage par son ID (Soft Delete).
      */
    public function archive($id_voyage) {
         $query = "UPDATE " . $this->table_name . " 

@@ -77,7 +77,6 @@ $pageTitle = "Gestion des Clients";
                                 <td><?= htmlspecialchars($client['prenom'] . ' ' . $client['nom']) ?></td>
                                 <td><?= htmlspecialchars($client['email']) ?></td>
                                 <td><?= htmlspecialchars($client['telephone']) ?></td>
-                                // ... (inside the foreach loop)
 
                                 <td><?= date('d M Y', strtotime($client['date_inscription'])) ?></td>
                                 <td>
@@ -85,7 +84,6 @@ $pageTitle = "Gestion des Clients";
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-// ...
                     <?php endif; ?>
                 </tbody>
             </table>
