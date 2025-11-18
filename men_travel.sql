@@ -89,7 +89,7 @@ CREATE TABLE `clients` (
   `date_inscription` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_client`),
   UNIQUE KEY `email_UNIQUE` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -98,7 +98,7 @@ CREATE TABLE `clients` (
 
 LOCK TABLES `clients` WRITE;
 /*!40000 ALTER TABLE `clients` DISABLE KEYS */;
-INSERT INTO `clients` VALUES (1,'Kamga','Alain','1992-04-20','HOMME','alain.kamga@test.com','+237 690 12 34 56','Rue 100, Yaoundé','password123',NULL,'2025-11-16 13:53:37'),(2,'Sontia','Zidane','2025-11-06','HOMME','zsontia@gmail.com','+237 693273103','douala','$2y$10$Fkzy2SyI/ijFSfI1s.Gnb.AzeS.yxA7TRUx0cN0xOavxJhyzOD4na',NULL,'2025-11-16 14:39:32'),(3,'ondoa','tamar','2025-11-08','FEMME','zidanesontia22@icloud.com','+237694274104','yaounde','$2y$10$q5yYcukNEuO6oaJBO4W5d.udbDJGtYodwh6IS5T0.sSwxe5gUZPAO',NULL,'2025-11-16 20:35:41');
+INSERT INTO `clients` VALUES (1,'Kamga','Alain','1992-04-20','HOMME','alain.kamga@test.com','+237 690 12 34 56','Rue 100, Yaoundé','password123',NULL,'2025-11-16 13:53:37'),(2,'Sontia','Zidane','2025-11-06','HOMME','zsontia@gmail.com','+237 693273103','douala','$2y$10$Fkzy2SyI/ijFSfI1s.Gnb.AzeS.yxA7TRUx0cN0xOavxJhyzOD4na',NULL,'2025-11-16 14:39:32'),(3,'ondoa','tamar','2025-11-08','FEMME','zidanesontia22@icloud.com','+237694274104','yaounde','$2y$10$q5yYcukNEuO6oaJBO4W5d.udbDJGtYodwh6IS5T0.sSwxe5gUZPAO',NULL,'2025-11-16 20:35:41'),(4,'ETOUNDI','GABRIELLE','2005-12-11','FEMME','gabrielleetoundi1212@gmail.com','690522836','Yaoundé','$2y$10$YpKM2302cNtK7UelLJRX3ex9.YkKiEPbQ9OdRkiZ/W24k2VnrN9bC',NULL,'2025-11-18 11:41:12');
 /*!40000 ALTER TABLE `clients` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -160,7 +160,7 @@ CREATE TABLE `commandes` (
   KEY `fk_commandes_voyage_idx` (`id_voyage`),
   CONSTRAINT `fk_commandes_client` FOREIGN KEY (`id_client`) REFERENCES `clients` (`id_client`),
   CONSTRAINT `fk_commandes_voyage` FOREIGN KEY (`id_voyage`) REFERENCES `voyages` (`id_voyage`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -169,7 +169,7 @@ CREATE TABLE `commandes` (
 
 LOCK TABLES `commandes` WRITE;
 /*!40000 ALTER TABLE `commandes` DISABLE KEYS */;
-INSERT INTO `commandes` VALUES (1,2,4,28000.00,'PAYEE','2025-11-16 19:08:31'),(2,2,4,21000.00,'EN_ATTENTE','2025-11-16 19:09:04'),(3,2,4,7000.00,'PAYEE','2025-11-16 19:18:29'),(4,2,2,16000.00,'PAYEE','2025-11-16 20:34:23');
+INSERT INTO `commandes` VALUES (1,2,4,28000.00,'PAYEE','2025-11-16 19:08:31'),(2,2,4,21000.00,'EN_ATTENTE','2025-11-16 19:09:04'),(3,2,4,7000.00,'PAYEE','2025-11-16 19:18:29'),(4,2,2,16000.00,'PAYEE','2025-11-16 20:34:23'),(5,2,2,8000.00,'PAYEE','2025-11-17 00:44:20'),(6,2,2,48000.00,'PAYEE','2025-11-17 10:23:04'),(7,2,2,16000.00,'PAYEE','2025-11-17 13:21:16'),(8,2,2,8000.00,'PAYEE','2025-11-17 17:17:20'),(9,2,5,40000.00,'PAYEE','2025-11-17 19:24:29'),(10,2,7,40000.00,'PAYEE','2025-11-18 09:34:39'),(11,2,3,35000.00,'PAYEE','2025-11-18 11:23:58');
 /*!40000 ALTER TABLE `commandes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -421,7 +421,7 @@ CREATE TABLE `paiements` (
   UNIQUE KEY `reference_paiement` (`reference_paiement`),
   KEY `idx_paiements_reservation` (`id_reservation`),
   CONSTRAINT `fk_paiements_reservations` FOREIGN KEY (`id_reservation`) REFERENCES `reservations` (`id_reservation`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -430,7 +430,7 @@ CREATE TABLE `paiements` (
 
 LOCK TABLES `paiements` WRITE;
 /*!40000 ALTER TABLE `paiements` DISABLE KEYS */;
-INSERT INTO `paiements` VALUES (1,1,28000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251116181719','SUCCES','2025-11-16 19:17:19'),(2,3,7000.00,'MTN_MOMO','SIM_MTN_MOMO_20251116181831','SUCCES','2025-11-16 19:18:31'),(3,4,16000.00,'MTN_MOMO','SIM_MTN_MOMO_20251116193426','SUCCES','2025-11-16 20:34:26');
+INSERT INTO `paiements` VALUES (1,1,28000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251116181719','SUCCES','2025-11-16 19:17:19'),(2,3,7000.00,'MTN_MOMO','SIM_MTN_MOMO_20251116181831','SUCCES','2025-11-16 19:18:31'),(3,4,16000.00,'MTN_MOMO','SIM_MTN_MOMO_20251116193426','SUCCES','2025-11-16 20:34:26'),(4,5,8000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251116234423','SUCCES','2025-11-17 00:44:23'),(5,6,48000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251117092306','SUCCES','2025-11-17 10:23:06'),(6,7,16000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251117122119','SUCCES','2025-11-17 13:21:19'),(7,9,40000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251117182432','SUCCES','2025-11-17 19:24:32'),(8,8,8000.00,'MTN_MOMO','SIM_MTN_MOMO_20251117182509','SUCCES','2025-11-17 19:25:09'),(9,10,40000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251118083443','SUCCES','2025-11-18 09:34:43'),(10,11,35000.00,'ORANGE_MONEY','SIM_ORANGE_MONEY_20251118102403','SUCCES','2025-11-18 11:24:03');
 /*!40000 ALTER TABLE `paiements` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -485,7 +485,7 @@ CREATE TABLE `reservations` (
   KEY `fk_reservations_commandes_idx` (`id_commande`),
   CONSTRAINT `fk_reservations_clients` FOREIGN KEY (`id_client`) REFERENCES `clients` (`id_client`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_reservations_voyages` FOREIGN KEY (`id_voyage`) REFERENCES `voyages` (`id_voyage`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -494,7 +494,7 @@ CREATE TABLE `reservations` (
 
 LOCK TABLES `reservations` WRITE;
 /*!40000 ALTER TABLE `reservations` DISABLE KEYS */;
-INSERT INTO `reservations` VALUES (1,2,4,1,'siege',3,'PAYEE','2025-11-16 19:08:31',NULL),(2,2,4,1,'siege',4,'PAYEE','2025-11-16 19:08:31',NULL),(3,2,4,1,'siege',8,'PAYEE','2025-11-16 19:08:31',NULL),(4,2,4,1,'siege',13,'PAYEE','2025-11-16 19:08:31',NULL),(5,2,4,2,'siege',27,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(6,2,4,2,'siege',24,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(7,2,4,2,'siege',20,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(8,2,4,3,'siege',7,'PAYEE','2025-11-16 19:18:29',NULL),(9,2,2,4,'siege',23,'PAYEE','2025-11-16 20:34:23',NULL),(10,2,2,4,'siege',19,'PAYEE','2025-11-16 20:34:23',NULL);
+INSERT INTO `reservations` VALUES (1,2,4,1,'siege',3,'PAYEE','2025-11-16 19:08:31',NULL),(2,2,4,1,'siege',4,'PAYEE','2025-11-16 19:08:31',NULL),(3,2,4,1,'siege',8,'PAYEE','2025-11-16 19:08:31',NULL),(4,2,4,1,'siege',13,'PAYEE','2025-11-16 19:08:31',NULL),(5,2,4,2,'siege',27,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(6,2,4,2,'siege',24,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(7,2,4,2,'siege',20,'EN_ATTENTE','2025-11-16 19:09:04',NULL),(8,2,4,3,'siege',7,'PAYEE','2025-11-16 19:18:29',NULL),(9,2,2,4,'siege',23,'PAYEE','2025-11-16 20:34:23',NULL),(10,2,2,4,'siege',19,'PAYEE','2025-11-16 20:34:23',NULL),(11,2,2,5,'siege',39,'PAYEE','2025-11-17 00:44:20',NULL),(12,2,2,6,'siege',4,'PAYEE','2025-11-17 10:23:04',NULL),(13,2,2,6,'siege',8,'PAYEE','2025-11-17 10:23:04',NULL),(14,2,2,6,'siege',12,'PAYEE','2025-11-17 10:23:04',NULL),(15,2,2,6,'siege',3,'PAYEE','2025-11-17 10:23:04',NULL),(16,2,2,6,'siege',7,'PAYEE','2025-11-17 10:23:04',NULL),(17,2,2,6,'siege',11,'PAYEE','2025-11-17 10:23:04',NULL),(18,2,2,7,'siege',6,'PAYEE','2025-11-17 13:21:16',NULL),(19,2,2,7,'siege',10,'PAYEE','2025-11-17 13:21:16',NULL),(20,2,2,8,'siege',26,'PAYEE','2025-11-17 17:17:20',NULL),(21,2,5,9,'siege',21,'PAYEE','2025-11-17 19:24:29',NULL),(22,2,5,9,'siege',22,'PAYEE','2025-11-17 19:24:29',NULL),(23,2,5,9,'siege',25,'PAYEE','2025-11-17 19:24:29',NULL),(24,2,5,9,'siege',26,'PAYEE','2025-11-17 19:24:29',NULL),(25,2,7,10,'siege',21,'PAYEE','2025-11-18 09:34:39',NULL),(26,2,7,10,'siege',25,'PAYEE','2025-11-18 09:34:39',NULL),(27,2,7,10,'siege',22,'PAYEE','2025-11-18 09:34:39',NULL),(28,2,7,10,'siege',26,'PAYEE','2025-11-18 09:34:39',NULL),(29,2,3,11,'siege',14,'PAYEE','2025-11-18 11:23:58',NULL),(30,2,3,11,'siege',17,'PAYEE','2025-11-18 11:23:58',NULL),(31,2,3,11,'siege',30,'PAYEE','2025-11-18 11:23:58',NULL),(32,2,3,11,'siege',26,'PAYEE','2025-11-18 11:23:58',NULL),(33,2,3,11,'siege',25,'PAYEE','2025-11-18 11:23:58',NULL);
 /*!40000 ALTER TABLE `reservations` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -551,7 +551,7 @@ CREATE TABLE `voyages` (
   KEY `idx_villes_date` (`ville_depart`,`ville_arrivee`,`date_depart`),
   CONSTRAINT `fk_voyages_chauffeurs` FOREIGN KEY (`id_chauffeur`) REFERENCES `chauffeurs` (`id_chauffeur`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_voyages_vehicules` FOREIGN KEY (`id_vehicule`) REFERENCES `vehicules` (`id_vehicule`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -560,7 +560,7 @@ CREATE TABLE `voyages` (
 
 LOCK TABLES `voyages` WRITE;
 /*!40000 ALTER TABLE `voyages` DISABLE KEYS */;
-INSERT INTO `voyages` VALUES (1,'Yaoundé','Douala','2025-11-17 13:53:37',1,2,7500.00,'programmé',1),(2,'Douala','Yaoundé','2025-11-17 13:53:37',2,3,8000.00,'programmé',0),(3,'Yaoundé','Bafoussam','2025-11-18 13:53:37',1,3,7000.00,'programmé',0),(4,'Yaoundé','Douala','2025-11-30 08:00:00',1,2,7000.00,'programmé',0),(5,'Bafoussam','Douala','2025-11-22 12:30:00',2,3,10000.00,'programmé',0),(6,'Bafoussam','Douala','2025-11-22 12:30:00',2,3,10000.00,'programmé',0),(7,'Yaoundé','Douala','2025-11-20 12:30:00',1,3,10000.00,'programmé',0);
+INSERT INTO `voyages` VALUES (1,'Yaoundé','Douala','2025-11-17 13:53:37',1,2,7500.00,'programmé',1),(2,'Douala','Yaoundé','2025-11-17 13:53:37',2,3,8000.00,'programmé',0),(3,'Yaoundé','Bafoussam','2025-11-18 13:53:37',1,3,7000.00,'programmé',0),(4,'Yaoundé','Douala','2025-11-30 08:00:00',1,2,7000.00,'programmé',0),(5,'Bafoussam','Douala','2025-11-22 12:30:00',2,3,10000.00,'programmé',0),(6,'Bafoussam','Douala','2025-11-22 12:30:00',2,3,10000.00,'programmé',0),(7,'Yaoundé','Douala','2025-11-20 12:30:00',1,3,10000.00,'programmé',0),(8,'Bafoussam','Douala','2025-11-08 10:20:00',3,3,5000.00,'programmé',0),(9,'Bafoussam','Douala','2025-11-21 10:21:00',3,3,5000.00,'programmé',0);
 /*!40000 ALTER TABLE `voyages` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -573,4 +573,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-11-17  0:38:06
+-- Dump completed on 2025-11-18 14:56:46
