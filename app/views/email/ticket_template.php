@@ -11,7 +11,7 @@
         .container { width: 90%; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
         .header { background: #003366; color: #fff; padding: 20px; }
         .body { padding: 30px; }
-        .body h1 { color: #003366; }
+        .body h1 { color: #003366; } 
         .details { margin-top: 20px; border-collapse: collapse; width: 100%; }
         .details th, .details td { border: 1px solid #eee; padding: 10px; text-align: left; }
         .details th { background: #f8f9fa; width: 30%; }
@@ -21,11 +21,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Men Travel - Votre Ticket</h2>
+            <h2>Men Travel - Votre Commande</h2>
         </div>
         <div class="body">
-            <h1>Voyage confirmé !</h1>
-            <p>Bonjour <?= htmlspecialchars($ticketData['client_prenom']) ?>, voici les détails de votre réservation :</p>
+            
+            <?= $ticketData['message_personnalise'] ?> 
             
             <table class="details">
                 <tr>
@@ -40,21 +40,27 @@
                     <th>Date & Heure</th>
                     <td><?= htmlspecialchars(date('d M Y \à H:i', strtotime($ticketData['date_depart']))) ?></td>
                 </tr>
+                
                 <tr>
-                    <th>Siège</th>
-                    <td><strong>N° <?= htmlspecialchars($ticketData['numero_siege']) ?></strong></td>
+                    <th>Siège(s)</th>
+                    <td>
+                        <strong>
+                            N° <?= htmlspecialchars(implode(', N°', $ticketData['sieges'])) ?>
+                        </strong>
+                    </td>
                 </tr>
+                
                 <tr>
                     <th>Bus</th>
                     <td><?= htmlspecialchars($ticketData['vehicule_marque']) ?> (<?= htmlspecialchars($ticketData['immatriculation']) ?>)</td>
                 </tr>
                 <tr>
-                    <th>Prix</th>
-                    <td><?= htmlspecialchars(number_format($ticketData['prix'], 0, ',', ' ')) ?> XAF (Payé)</td>
+                    <th>Prix Total</th>
+                    <td><?= htmlspecialchars(number_format($ticketData['montant_total'], 0, ',', ' ')) ?> XAF (Payé)</td>
                 </tr>
                 <tr>
-                    <th>ID Ticket</th>
-                    <td>#<?= str_pad($ticketData['id_reservation'], 6, '0', STR_PAD_LEFT) ?></td>
+                    <th>ID Commande</th>
+                    <td>#<?= str_pad($ticketData['id_commande'], 6, '0', STR_PAD_LEFT) ?></td>
                 </tr>
             </table>
 

@@ -7,10 +7,21 @@ namespace App\Controllers;
 // On IMPORTE les classes dont on a besoin
 use App\Core\Database;
 use App\Models\Client;
-use App\Models\Reservation; // <-- AJOUTEZ CETTE LIGNE
+use App\Models\Reservation;
+use App\Models\Commande; // <-- IMPORTATION AJOUTÉE
+
+use PDO;
 class ClientController {
 
-    // Affiche la page d'accueil (simple)
+    private $db; // Propriété pour la connexion BDD
+
+    // Constructeur pour initialiser la BDD
+    public function __construct() {
+        $database = new Database();
+        $this->db = $database->getConnection();
+    }
+
+    // Affiche la page d'accueil (simple) - (Obsolète car vous redirigez)
     public function showHomePage() {
         echo "<h1>Bienvenue sur Men Travel !</h1>";
         echo "<p><a href='/register'>S'inscrire</a> | <a href='/login'>Se connecter</a></p>";
@@ -18,15 +29,13 @@ class ClientController {
 
     // Affiche la page d'inscription
     public function showRegisterPage() {
-        // Charge la vue
         require __DIR__ . '/../views/client/register.php';
     }
 
     // Traite l'inscription (POST)
     public function handleRegister() {
-        $database = new Database();
-        $db = $database->getConnection();
-        $client = new Client($db);
+        // $this->db est maintenant disponible grâce au constructeur
+        $client = new Client($this->db); 
 
         // Récupérer les données
         $client->nom = $_POST['nom'];
@@ -39,11 +48,9 @@ class ClientController {
         $client->adresse = $_POST['adresse'];
 
         if ($client->register()) {
-            // Succès : Rediriger vers la page de connexion
             header("Location: /login?success=Inscription réussie !");
             exit();
         } else {
-            // Échec (email existe)
             header("Location: /register?error=Cet email est déjà utilisé.");
             exit();
         }
@@ -51,15 +58,12 @@ class ClientController {
 
     // Affiche la page de connexion
     public function showLoginPage() {
-        // Charge la vue
         require __DIR__ . '/../views/client/login.php';
     }
 
     // Traite la connexion (POST)
-    public function handleLogin() {
-        $database = new Database();
-        $db = $database->getConnection();
-        $client = new Client($db);
+   public function handleLogin() {
+        $client = new Client($this->db);
 
         $client->email = $_POST['email'];
         $client->mot_de_passe = $_POST['mot_de_passe'];
@@ -69,29 +73,68 @@ class ClientController {
             $_SESSION['client_id'] = $client->id_client;
             $_SESSION['client_nom'] = $client->nom . ' ' . $client->prenom;
             
-            // Rediriger vers le tableau de bord
-            header("Location: /dashboard");
+            // --- NOUVELLE LOGIQUE DE REDIRECTION ---
+            // On vérifie s'il y a une redirection en attente
+            if (isset($_SESSION['redirect_to'])) {
+                $redirectUrl = $_SESSION['redirect_to'];
+                unset($_SESSION['redirect_to']); // On nettoie la session
+                header("Location: " . $redirectUrl);
+            } else {
+                // Sinon (connexion normale), on va au tableau de bord
+                header("Location: /dashboard");
+            }
             exit();
+            // --- FIN DE LA NOUVELLE LOGIQUE ---
+
         } else {
             // Échec
             header("Location: /login?error=Email ou mot de passe incorrect.");
             exit();
         }
     }
-
     // Affiche le tableau de bord (protégé)
-   // Affiche le tableau de bord (protégé)
     public function showDashboard() {
-        // Sécurité : vérifier si le client est connecté
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login?error=Veuillez vous connecter.");
             exit();
         }
 
-        // Si on est connecté, on CHARGE LA VUE
+        $id_client = $_SESSION['client_id'];
+        $clientModel = new Client($this->db);
+        $commandeModel = new Commande($this->db);
+
+        // 1. Récupérer le nom complet (si non déjà en session)
+        $clientData = $clientModel->findById($id_client); // Réutilise findById pour les détails
+
+        // 2. Récupérer les statistiques de réservation (par exemple, le nombre total)
+        // NOTE: findCommandsByClientId dans Commande.php est un peu lourd pour juste un count.
+        
+        $statsQuery = "SELECT COUNT(id_commande) as total_trips, 
+                              MAX(date_commande) as last_booking 
+                       FROM commandes 
+                       WHERE id_client = :id_client AND statut = 'PAYEE'";
+        $statsStmt = $this->db->prepare($statsQuery);
+        $statsStmt->bindParam(':id_client', $id_client);
+        $statsStmt->execute();
+        $reservationStats = $statsStmt->fetch(PDO::FETCH_ASSOC);
+
+        // 3. Récupérer le prochain voyage (limit 1)
+        $nextTripQuery = "SELECT v.ville_depart, v.ville_arrivee, v.date_depart 
+                          FROM commandes c
+                          JOIN voyages v ON c.id_voyage = v.id_voyage
+                          WHERE c.id_client = :id_client 
+                          AND c.statut = 'PAYEE'
+                          AND v.date_depart >= NOW() 
+                          ORDER BY v.date_depart ASC 
+                          LIMIT 1";
+        $tripStmt = $this->db->prepare($nextTripQuery);
+        $tripStmt->bindParam(':id_client', $id_client);
+        $tripStmt->execute();
+        $nextTrip = $tripStmt->fetch(PDO::FETCH_ASSOC);
+
+        // On passe les données à la vue
         require __DIR__ . '/../views/client/dashboard.php';
     }
-
     // Gère la déconnexion
     public function handleLogout() {
         session_destroy();
@@ -100,67 +143,61 @@ class ClientController {
     }
 
    /**
-     * Affiche la page "Mes réservations" (protégée)
-     */
-    public function showMyReservations() {
-        // Sécurité : vérifier si le client est connecté
+    * Affiche la page "Mes réservations" (protégée)
+    * (VERSION CORRIGÉE)
+    */
+   public function showMyReservations() {
+        // Sécurité
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login?error=Veuillez vous connecter.");
             exit();
         }
 
         // --- MISE À JOUR ---
-        // On instancie la BDD et le nouveau modèle
-        $database = new Database();
-        $db = $database->getConnection();
-        $reservationModel = new Reservation($db);
+        // On importe le modèle Commande (on utilise $this->db)
+        $commandeModel = new \App\Models\Commande($this->db);
         
-        // On récupère les VRAIES réservations de l'utilisateur connecté
-        $reservations = $reservationModel->getByClientId($_SESSION['client_id']); 
+        // On appelle la nouvelle méthode
+        $commandes = $commandeModel->findCommandsByClientId($_SESSION['client_id']); 
         // --- FIN MISE À JOUR ---
         
         $pageTitle = "Mes réservations";
+        
+        // On envoie le tableau $commandes à la vue
         require __DIR__ . '/../views/client/my_reservations.php';
     }
+
+    //
+    // LE BLOC DE CODE ERRONÉ (lignes 128-138) A ÉTÉ COMPLÈTEMENT SUPPRIMÉ
+    //
 
     /**
      * Affiche la page "Mon profil" (protégée)
      */
-    public function showProfile() {
-        // Sécurité : vérifier si le client est connecté
+     public function showProfile() {
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login?error=Veuillez vous connecter.");
             exit();
         }
 
-        // On charge les infos actuelles du client
-        $database = new Database();
-        $db = $database->getConnection();
-        $clientModel = new Client($db);
-        
-        // On utilise la fonction findById qu'on avait créée
+        $clientModel = new Client($this->db);
         $clientData = $clientModel->findById($_SESSION['client_id']);
 
         $pageTitle = "Mon profil";
-        // On passe les données du client à la vue
         require __DIR__ . '/../views/client/profile.php';
     }
+    
     /**
      * Traite la mise à jour du formulaire de profil (POST)
      */
-    public function handleProfileUpdate() {
-        // Sécurité : vérifier si le client est connecté
+     public function handleProfileUpdate() {
         if (!isset($_SESSION['client_id'])) {
             header("Location: /login");
             exit();
         }
 
-        // Connexion BDD et Modèle
-        $database = new Database();
-        $db = $database->getConnection();
-        $clientModel = new Client($db);
+        $clientModel = new Client($this->db);
 
-        // Appel de la méthode de mise à jour
         $result = $clientModel->update(
             $_SESSION['client_id'],
             $_POST['nom'],
@@ -171,13 +208,9 @@ class ClientController {
         );
 
         if ($result) {
-            // Important : Mettre à jour le nom dans la session !
             $_SESSION['client_nom'] = $_POST['prenom'] . ' ' . $_POST['nom'];
-            
-            // Rediriger avec un message de succès
             header("Location: /profile?success=Profil mis à jour avec succès !");
         } else {
-            // Rediriger avec un message d'erreur
             header("Location: /profile?error=Erreur lors de la mise à jour.");
         }
         exit();

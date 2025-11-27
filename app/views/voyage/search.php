@@ -1,5 +1,5 @@
 <?php
-// $pageTitle, $searchParams, et $voyages sont passés par le contrôleur
+// $pageTitle, $searchParams, $voyages, et $resultsTitle sont passés par le contrôleur
 $client_nom = $_SESSION['client_nom'] ?? 'Client';
 ?>
 <!DOCTYPE html>
@@ -37,6 +37,7 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
 
         /* Style pour la liste des résultats (copié de "Mes réservations") */
         .results-header { margin-top: 2rem; border-bottom: 2px solid #eee; padding-bottom: 1rem; }
+        .results-header h2 { color: #003366; }
         .voyage-list { list-style: none; padding: 0; margin-top: 2rem; }
         .voyage-item { background: #fff; border-radius: 10px; box-shadow: 0 8px 15px rgba(0,0,0,0.05); margin-bottom: 1.5rem; display: flex; overflow: hidden; transition: all 0.3s ease; }
         .voyage-item:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.08); }
@@ -80,7 +81,8 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
                     <div class="search-form-grid">
                         <div class="form-group">
                             <label for="ville_depart">Départ :</label>
-                            <select id="ville_depart" name="ville_depart" required>
+                            <select id="ville_depart" name="ville_depart">
+                                <option value="">Toutes</option>
                                 <option value="Yaoundé" <?= ($searchParams['ville_depart'] ?? '') == 'Yaoundé' ? 'selected' : '' ?>>Yaoundé</option>
                                 <option value="Douala" <?= ($searchParams['ville_depart'] ?? '') == 'Douala' ? 'selected' : '' ?>>Douala</option>
                                 <option value="Bafoussam" <?= ($searchParams['ville_depart'] ?? '') == 'Bafoussam' ? 'selected' : '' ?>>Bafoussam</option>
@@ -88,7 +90,8 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
                         </div>
                         <div class="form-group">
                             <label for="ville_arrivee">Arrivée :</label>
-                            <select id="ville_arrivee" name="ville_arrivee" required>
+                            <select id="ville_arrivee" name="ville_arrivee">
+                                <option value="">Toutes</option>
                                 <option value="Yaoundé" <?= ($searchParams['ville_arrivee'] ?? '') == 'Yaoundé' ? 'selected' : '' ?>>Yaoundé</option>
                                 <option value="Douala" <?= ($searchParams['ville_arrivee'] ?? '') == 'Douala' ? 'selected' : '' ?>>Douala</option>
                                 <option value="Bafoussam" <?= ($searchParams['ville_arrivee'] ?? '') == 'Bafoussam' ? 'selected' : '' ?>>Bafoussam</option>
@@ -96,50 +99,53 @@ $client_nom = $_SESSION['client_nom'] ?? 'Client';
                         </div>
                         <div class="form-group">
                             <label for="date_depart">Date :</label>
-                            <input type="date" id="date_depart" name="date_depart" required 
+                            <input type="date" id="date_depart" name="date_depart" 
                                    value="<?= htmlspecialchars($searchParams['date_depart'] ?? date('Y-m-d')) ?>"
                                    min="<?= date('Y-m-d') ?>">
                         </div>
-                        <button type="submit" class="btn-primary">Rechercher</button>
+                        <button type="submit" class="btn-primary">Filtrer</button>
                     </div>
                 </form>
             </div>
 
-            <?php if (isset($searchParams['ville_depart'])): ?>
-                <div class="results-header">
-                    <h2>Résultats</h2>
-                </div>
-                
-                <ul class="voyage-list">
-                    <?php if (empty($voyages)): ?>
-                        <li class="no-results">
-                            <p>😔 Aucun voyage trouvé pour cette date et cette destination.</p>
+            <div class="results-header">
+                <h2><?= htmlspecialchars($resultsTitle) ?></h2>
+            </div>
+            
+            <ul class="voyage-list">
+                <?php if (empty($voyages)): ?>
+                    <li class="no-results">
+                        <?php if (isset($searchParams['ville_depart']) && !empty($searchParams['ville_depart'])): ?>
+                            <p>😔 Aucun voyage trouvé pour cette recherche.</p>
+                        <?php else: ?>
+                            <p>😔 Aucun voyage n'est programmé pour le moment.</p>
+                        <?php endif; ?>
+                    </li>
+                <?php else: ?>
+                    <?php foreach ($voyages as $voyage): ?>
+                        <li class="voyage-item">
+                            <div class="voyage-date">
+                                <span class="voyage-date-day"><?= date('d', strtotime($voyage['date_depart'])) ?></span>
+                                <span class="voyage-date-month"><?= date('M', strtotime($voyage['date_depart'])) ?></span>
+                            </div>
+                            <div class="voyage-details">
+                                <div class="voyage-info">
+                                    <h3><?= htmlspecialchars($voyage['ville_depart']) ?> → <?= htmlspecialchars($voyage['ville_arrivee']) ?></h3>
+                                    <p>Départ à <strong><?= date('H:i', strtotime($voyage['date_depart'])) ?></strong></p>
+                                    <p><?= htmlspecialchars($voyage['marque']) ?> (<?= $voyage['nombre_places'] ?> places)</p>
+                                    <p>Chauffeur: <?= htmlspecialchars($voyage['chauffeur_nom']) ?></p>
+                                </div>
+                                <div class="voyage-action">
+                                    <div class="voyage-price"><?= number_format($voyage['prix'], 0, ',', ' ') ?> XAF</div>
+                                    <a href="/reservation/select-seat/<?= $voyage['id_voyage'] ?>" class="btn-reserver">
+                                        Choisir Siège
+                                    </a>
+                                </div>
+                            </div>
                         </li>
-                    <?php else: ?>
-                        <?php foreach ($voyages as $voyage): ?>
-                            <li class="voyage-item">
-                                <div class="voyage-date">
-                                    <span class="voyage-date-day"><?= date('d', strtotime($voyage['date_depart'])) ?></span>
-                                    <span class="voyage-date-month"><?= date('M', strtotime($voyage['date_depart'])) ?></span>
-                                </div>
-                                <div class="voyage-details">
-                                    <div class="voyage-info">
-                                        <h3><?= date('H:i', strtotime($voyage['date_depart'])) /* Affiche 08:00 */ ?></h3>
-                                        <p><?= htmlspecialchars($voyage['marque']) ?> (<?= $voyage['nombre_places'] ?> places)</p>
-                                        <p>Chauffeur: <?= htmlspecialchars($voyage['chauffeur_nom']) ?></p>
-                                    </div>
-                                    <div class="voyage-action">
-                                        <div class="voyage-price"><?= number_format($voyage['prix'], 0, ',', ' ') ?> XAF</div>
-                                        <a href="/reservation/select-seat/<?= $voyage['id_voyage'] ?>" class="btn-reserver">
-                                            Choisir Siège
-                                        </a>
-                                    </div>
-                                </div>
-                            </li>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </ul>
-            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </ul>
 
         </main>
     </div>

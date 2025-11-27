@@ -6,16 +6,15 @@ namespace App\Controllers;
 use App\Core\Database;
 use App\Models\Reservation;
 use App\Models\Paiement;
+use App\Models\Commande;
 use App\Core\Mailer;
-use GuzzleHttp\Client; // Importé par Composer
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 
 class PaiementController {
 
     private $db;
-    
-    // N'oubliez pas de mettre votre clé API ici
-    private $geminiApiKey = 'AIzaSyApFFcGR15p_rgoskoafcDPXyLnQ7clnjE'; // REMPLACEZ CECI
+    private $geminiApiKey = 'VOTRE_CLE_API_GEMINI_ICI'; // N'oubliez pas votre clé
 
     public function __construct() {
         $database = new Database();
@@ -23,16 +22,20 @@ class PaiementController {
     }
 
     /**
-     * Affiche la page de résumé du paiement.
+     * Affiche la page de paiement pour une COMMANDE
      */
-    public function show($id_reservation) {
-        if (!isset($_SESSION['client_id'])) { /* (sécurité) */ }
+    // publicS-Function: show <-- ERREUR SUPPRIMÉE
+    public function show($id_commande) {
+        if (!isset($_SESSION['client_id'])) {
+            header("Location: /login");
+            exit();
+        }
 
-        $reservationModel = new Reservation($this->db);
-        $reservationDetails = $reservationModel->getDetailsForPayment($_SESSION['client_id'], $id_reservation);
+        $commandeModel = new Commande($this->db);
+        $commandeDetails = $commandeModel->findByIdAndClient($id_commande, $_SESSION['client_id']);
 
-        if (!$reservationDetails || $reservationDetails['statut'] !== 'EN_ATTENTE') {
-            header("Location: /my-reservations?error=Réservation invalide ou déjà traitée.");
+        if (!$commandeDetails || $commandeDetails['statut'] !== 'EN_ATTENTE') {
+            header("Location: /my-reservations?error=Commande invalide ou déjà traitée.");
             exit();
         }
 
@@ -41,50 +44,51 @@ class PaiementController {
     }
 
     /**
-     * Traite la simulation de paiement.
+     * Traite le paiement pour une COMMANDE
      */
     public function process() {
-        if (!isset($_SESSION['client_id'])) { /* (sécurité) */ }
+        if (!isset($_SESSION['client_id'])) { 
+            header("Location: /login");
+            exit();
+        }
 
-        $id_reservation = $_POST['id_reservation'] ?? null;
+        $id_commande = $_POST['id_commande'] ?? null;
         $mode_paiement = $_POST['mode'] ?? 'INCONNU';
         $montant = $_POST['montant'] ?? 0;
 
-        if (!$id_reservation) { /* (gestion erreur) */ }
+        if (!$id_commande) { 
+            header("Location: /my-reservations?error=Une erreur est survenue.");
+            exit();
+        }
 
         $paiementModel = new Paiement($this->db);
-        $reservationModel = new Reservation($this->db);
-
-        // --- DÉBUT TRANSACTION BDD ---
+        $reservationModel = new Reservation($this->db); 
+        $commandeModel = new Commande($this->db);
+        
         try {
             $this->db->beginTransaction();
+
             $ref = "SIM_" . $mode_paiement . "_" . date('YmdHis');
-            $paiementModel->create($id_reservation, $montant, $mode_paiement, $ref, 'SUCCES');
-            $reservationModel->updateStatus($id_reservation, 'PAYEE');
+            $paiementModel->create($id_commande, $montant, $mode_paiement, $ref, 'SUCCES');
+            $commandeModel->updateStatus($id_commande, 'PAYEE');
+            $reservationModel->updateStatusByCommandeId($id_commande, 'PAYEE');
+
             $this->db->commit();
         } catch (\Exception $e) {
             $this->db->rollBack();
-            header("Location: /payment/show/$id_reservation?error=Erreur BDD: " . $e->getMessage());
+            header("Location: /payment/show/$id_commande?error=Erreur BDD: " . $e->getMessage());
             exit();
         }
-        // --- FIN TRANSACTION BDD ---
-
-        // Le paiement est confirmé, maintenant on prépare l'email (l'étape lente)
         
+        // --- GESTION DE L'EMAIL ---
         try {
-            // 1. Récupérer toutes les données du ticket
-            $ticketData = $reservationModel->getTicketDetails($_SESSION['client_id'], $id_reservation);
+            $ticketData = $commandeModel->getCommandeDetailsForEmail($id_commande, $_SESSION['client_id']);
             
             if ($ticketData) {
-                
-                // 2. Générer le message d'intro AVEC L'IA
-                $introMessage = $this->generateIntroWithGemini($ticketData);
-                
-                // 3. Rendre le template HTML (en lui injectant le message de l'IA)
-                $htmlBody = $this->renderTicketToHtml($ticketData, $introMessage);
-                $subject = "Confirmation de votre ticket Men Travel pour " . $ticketData['ville_depart'];
+                $introHtmlBlock = $this->generateIntroWithGemini($ticketData);
+                $htmlBody = $this->renderTicketToHtml($ticketData, $introHtmlBlock);
+                $subject = "Confirmation de votre commande Men Travel pour " . $ticketData['ville_depart'];
 
-                // 4. Envoyer l'email
                 $mailer = new Mailer();
                 $mailer->sendEmail(
                     $ticketData['client_email'], 
@@ -94,82 +98,68 @@ class PaiementController {
                 );
             }
         } catch (\Exception $mailOrApiError) {
-            // L'email (ou l'IA) a échoué, MAIS le paiement est confirmé.
              header("Location: /my-reservations?success=Paiement réussi ! (Erreur lors de l'envoi de l'email.)");
             exit();
         }
 
-        // Tout a fonctionné (paiement ET email)
-        header("Location: /my-reservations?success=Paiement réussi ! Votre ticket a été confirmé et envoyé par email.");
+        header("Location: /my-reservations?success=Paiement réussi ! Votre commande a été confirmée et envoyée par email.");
         exit();
     }
 
 
     /**
-     * NOUVELLE MÉTHODE : Appelle l'API Gemini pour générer l'intro.
+     * Génère l'intro (l'IA utilise maintenant un tableau de sièges)
      */
     private function generateIntroWithGemini($ticketData) {
-        
         $client = new Client([
             'base_uri' => 'https://generativelanguage.googleapis.com',
             'timeout'  => 30.0,
         ]);
 
-        // 1. Préparer le "Prompt" (bien meilleur)
-        $prompt = "Tu es un agent de réservation amical pour 'Men Travel'.
-        Rédige un paragraphe d'introduction (2-3 phrases) pour un email de confirmation de ticket.
-        Ne crée pas de tableau, juste le texte d'introduction.
-        Le format doit être en HTML (juste des balises <p>).
-        
-        Infos sur le client:
-        - Prénom: " . $ticketData['client_prenom'] . "
-        - Destination: " . $ticketData['ville_arrivee'] . "
-        
-        Instructions pour le ton:
-        - Adresse-toi au client par son prénom.
-        - Sois chaleureux et professionnel.
-        - Confirme que sa réservation est payée.
-        - Souhaite-lui un bon voyage (personnalise si la destination est Douala ou Kribi, 'voyage vers la côte').
-        - Dis-lui que les détails de son ticket sont 'ci-dessous'.
-        - Ne signe pas l'email (pas de 'Cordialement').";
+        $politesse = ($ticketData['client_sexe'] === 'HOMME') ? "Cher" : "Chère";
+        $sieges_str = "N°" . implode(" et N°", $ticketData['sieges']);
 
-        $body = [
-            'contents' => [ 'parts' => [ ['text' => $prompt] ] ]
-        ];
+        $prompt = "Tu es un agent de réservation amical pour 'Men Travel'.
+        Rédige l'introduction HTML pour un email de confirmation de commande.
+        Le format doit être en HTML.
+        
+        Instructions:
+        1.  Commence par <h1 style=\"color: #003366;\">Commande Confirmée !</h1>.
+        2.  Ensuite, écris un paragraphe <p> qui utilise EXACTEMENT: '$politesse " . $ticketData['client_prenom'] . ",'
+        3.  Confirme que le paiement pour la commande (pas juste un ticket) est réussi.
+        4.  Mentionne qu'ils ont réservé plusieurs sièges.
+        5.  Termine en disant 'Vous trouverez les détails de vos tickets ci-dessous.'
+        
+        Informations:
+        - Salutation: '$politesse " . $ticketData['client_prenom'] . "'
+        - Destination: " . $ticketData['ville_arrivee'] . "
+        - Sièges réservés: " . $sieges_str . "
+        
+        Exemple : 
+        '<h1 style=\"color: #003366;\">Commande Confirmée !</h1><p>$politesse " . $ticketData['client_prenom'] . ", félicitations ! Votre paiement a été accepté. Votre réservation pour les sièges $sieges_str vers " . $ticketData['ville_arrivee'] . " est confirmée. Vous trouverez tous les détails ci-dessous.</p>'";
+
+        $body = [ 'contents' => [ 'parts' => [ ['text' => $prompt] ] ] ];
 
         try {
-            // 2. Envoyer la requête
             $response = $client->post(
                 '/v1beta/models/gemini-1.5-flash:generateContent?key=' . $this->geminiApiKey,
                 ['json' => $body]
             );
-
             $result = json_decode($response->getBody()->getContents(), true);
             $generatedText = $result['candidates'][0]['content']['parts'][0]['text'];
-            
-            // Nettoyage du Markdown
-            $generatedText = str_replace("```html", "", $generatedText);
-            $generatedText = str_replace("```", "", $generatedText);
-
-            return $generatedText; // Retourne le <p>Bonjour Zidane...</p>
-
+            $generatedText = str_replace(["```html", "```"], "", $generatedText);
+            return $generatedText;
         } catch (RequestException $e) {
-            // Si l'API échoue, on génère un message de base
-            return "<p>Bonjour " . htmlspecialchars($ticketData['client_prenom']) . ", votre réservation est confirmée. Vous trouverez les détails de votre ticket ci-dessous.</p>";
+            return "<h1 style=\"color: #003366;\">Commande Confirmée !</h1><p>" . htmlspecialchars($politesse) . " " . htmlspecialchars($ticketData['client_prenom']) . ", votre réservation pour les sièges " . htmlspecialchars($sieges_str) . " est confirmée. Vous trouverez les détails ci-dessous.</p>";
         }
     }
 
-
     /**
-     * MÉTHODE DE SECOURS : Charge le template d'email
-     * (maintenant mis à jour pour accepter le message de l'IA)
+     * Charge le template d'email
      */
     private function renderTicketToHtml($ticketData, $ia_message) {
         ob_start();
-        
-        // On injecte le message (généré par l'IA ou par la méthode de secours)
         $ticketData['message_personnalise'] = $ia_message;
-        
         require __DIR__ . '/../views/email/ticket_template.php';
         return ob_get_clean();
     }
