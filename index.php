@@ -13,7 +13,12 @@ use App\Controllers\PaiementController; // <-- AJOUTEZ CETTE LIGNE
 use App\Controllers\ReservationController; // <-- AJOUTEZ CETTE LIGNE
 // 3. Initialiser le routeur
 $router = new \Bramus\Router\Router();
+require __DIR__ . '/vendor/autoload.php'; 
 
+// ... le reste de votre code ...
+
+// Maintenant ça va marcher :
+$router = new \Bramus\Router\Router();
 // --- DÉFINITION DES ROUTES ---
 // C'est la partie la plus importante.
 // Nous définissons des routes GET AVANT de lancer run().
