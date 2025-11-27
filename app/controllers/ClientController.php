@@ -2,7 +2,7 @@
 // Fichier: app/controllers/ClientController.php
 
 // Namespace correspondant au dossier (App\Controllers)
-namespace App\controllers;
+namespace App\Controllers;
 
 // On IMPORTE les classes dont on a besoin
 use App\Core\Database;
