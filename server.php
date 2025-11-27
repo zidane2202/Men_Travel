@@ -1,6 +1,11 @@
 <?php
 // Fichier: server.php (à la racine)
+require __DIR__ . '/vendor/autoload.php'; 
 
+// ... le reste de votre code ...
+
+// Maintenant ça va marcher :
+$router = new \Bramus\Router\Router();
 $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
 );
